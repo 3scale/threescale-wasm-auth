@@ -1,0 +1,64 @@
+[package]
+name = "threescale-wasm-auth"
+version = "0.1.0"
+authors = ["Alejandro Martinez Ruiz <alex@flawedcode.org>"]
+license = "Apache-2.0"
+description = "Proxy-WASM filter for 3scale integration"
+keywords = ["proxy-wasm", "webassembly", "filter", "proxy", "api-management", "3scale"]
+categories = ["api"]
+repository = "https://github.com/3scale/threescale-wasm-auth"
+edition = "2018"
+resolver = "2"
+publish = false
+readme = "README.md"
+exclude = [
+    ".gitignore",
+    "bors.toml",
+    "/ci/**",
+    "/.github/**",
+]
+
+[features]
+default = ["json_config"]
+json_config = []
+# YAML support seems to be buggy within serde_yaml and the unmaintained yaml-rust library - so do not choose unless testing/developing
+yaml_config = ["serde_yaml"]
+# You need to add this one manually to really pick up yaml_config
+danger = []
+
+[patch.crates-io]
+url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
+percent-encoding = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
+threescalers = { git = "https://github.com/3scale-rs/threescalers", branch = "v0.8-pre" }
+
+[dependencies]
+proxy-wasm = { git = "https://github.com/3scale/proxy-wasm-rust-sdk", branch = "3scale" }
+log = "^0.4"
+serde = { version = "^1", features = ["derive"] }
+threescalers = { git = "https://github.com/3scale-rs/threescalers", branch = "v0.8-pre", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"] }
+anyhow = "^1"
+thiserror = "^1"
+url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale", features = ["serde"] }
+regex = { version = "^1", default-features = false, features = ["std", "perf"] }
+base64 = "^0.13"
+prost = { version = "^0.7", features = ["prost-derive"] }
+prost-types = { version = "^0.7" }
+serde_json = { version = "^1" }
+serde_yaml = { version = "^0.8", optional = true }
+
+[dev-dependencies]
+serde_yaml = "^0.8"
+cargo-deny = "^0.9"
+
+[lib]
+# rlib included to be able to use #[test] without compiler and linker issues
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+autocfg = { git = "https://github.com/unleashed/autocfg", branch = "probe_feature" }
+
+[profile.release]
+opt-level = 3
+debug = true # for wasm-snip to remove panicking infra
+lto = true
+codegen-units = 1

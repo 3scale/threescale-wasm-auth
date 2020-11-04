@@ -1,0 +1,7 @@
+# Note: audit statuses are only triggered in specific cases, so can't use here
+status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.52.0, false)", "clippy_check", "rustfmt"]
+pr_status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.52.0, false)", "clippy_check", "rustfmt"]
+block_labels = ["wip"]
+delete_merged_branches = true
+use_codeowners = true
+use_squash_merge = false

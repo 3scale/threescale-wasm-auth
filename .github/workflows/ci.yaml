@@ -1,0 +1,56 @@
+name: Continuous integration
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - trying
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - stable
+          - beta
+        experimental: [false]
+        cargo_flags: [--all-features]
+        include:
+          # Stop breakages in nightly to fail the workflow
+          - rust: nightly
+            experimental: true
+            cargo_flags: --all-features
+          # MSRV
+          - rust: 1.52.0
+            experimental: false
+            cargo_flags: ""
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt
+          override: true
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: ${{ matrix.cargo_flags }}
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: ${{ matrix.cargo_flags }}

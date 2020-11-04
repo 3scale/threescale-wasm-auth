@@ -1,0 +1,6 @@
+/target/
+/tarpaulin_report.html
+/compose/wasm/
+/servicemesh/threescale_wasm_auth.wasm
+/secrets
+/.vscode/
