@@ -627,6 +627,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
+dependencies = [
+ "rayon",
+]
+
+[[package]]
 name = "idna"
 version = "0.2.3"
 source = "git+https://github.com/3scale-rs/rust-url?branch=3scale#78803c179d1eeffad5a9a90d2fe20c739f3dec8f"
@@ -690,6 +699,12 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 dependencies = [
  "spin",
 ]
+
+[[package]]
+name = "leb128"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3576a87f2ba00f6f106fdfcd16db1d698d648a26ad8e0573cad8537c3c362d2a"
 
 [[package]]
 name = "libc"
@@ -1333,6 +1348,7 @@ dependencies = [
  "thiserror",
  "threescalers",
  "url",
+ "wasm-snip",
 ]
 
 [[package]]
@@ -1494,10 +1510,56 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
+name = "walrus"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6f3bd9559eb5b59d55cc60986e26dc9b3f64377d0b9495e41abd9ede9a6443f"
+dependencies = [
+ "failure",
+ "id-arena",
+ "leb128",
+ "log",
+ "rayon",
+ "walrus-macro",
+ "wasmparser",
+]
+
+[[package]]
+name = "walrus-macro"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0464a6e0d86be4c95c8c838bcb1910df831e1216a9586feeb02478cd52c4e554"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "wasi"
 version = "0.10.2+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
+
+[[package]]
+name = "wasm-snip"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "600b438ce0975cfe42cd9b3f797de9ddabf010c4ff4eae31b7a1a30755101c44"
+dependencies = [
+ "clap",
+ "failure",
+ "rayon",
+ "regex",
+ "walrus",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.37.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7387ba67c13dd9cd01d7d961e733375aee889f828564e190da85b5602eb5eeb"
 
 [[package]]
 name = "winapi"
