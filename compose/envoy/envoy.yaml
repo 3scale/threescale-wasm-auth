@@ -3,6 +3,31 @@ dynamic_resources:
     resource_api_version: v3
     path: "/etc/envoy/lds.yaml"
 
+bootstrap_extensions:
+  - name: envoy.bootstrap.wasm
+    typed_config:
+      "@type": type.googleapis.com/envoy.extensions.wasm.v3.WasmService
+      singleton: true
+      config:
+        name: "threescale_config_cache"
+        root_id: "threescale_config_cache"
+        vm_config:
+          runtime: envoy.wasm.runtime.v8
+          vm_id: "threescale_config_cache"
+          configuration:
+            "@type": type.googleapis.com/google.protobuf.StringValue
+            value: "vm configuration here!"
+          code:
+            local:
+              filename: "/etc/proxy-wasm/threescale_wasm_config_cache.wasm"
+          allow_precompiled: false
+        configuration:
+          "@type": type.googleapis.com/google.protobuf.StringValue
+          value: |
+            {
+              "api": "v1"
+            }
+
 static_resources:
   clusters:
     - name: web
