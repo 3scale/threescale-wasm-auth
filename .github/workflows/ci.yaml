@@ -1,4 +1,4 @@
-name: Continuous integration
+name: CI
 
 on:
   push:
@@ -21,6 +21,8 @@ jobs:
         rust:
           - stable
           - beta
+            # MSRV
+          - 1.52.1
         experimental: [false]
         cargo_flags: [--all-features]
         include:
@@ -28,10 +30,6 @@ jobs:
           - rust: nightly
             experimental: true
             cargo_flags: --all-features
-          # MSRV
-          - rust: 1.52.0
-            experimental: false
-            cargo_flags: ""
 
     steps:
       - uses: actions/checkout@v2
