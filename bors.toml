@@ -1,4 +1,3 @@
-# Note: audit statuses are only triggered in specific cases, so can't use here
 status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.52.1, false, --all-features)", "clippy_check", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
 pr_status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.52.1, false, --all-features)", "clippy_check", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
 timeout_sec = 1800
