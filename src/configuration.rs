@@ -88,15 +88,12 @@ mod test {
         for<'e> &'e E: TryInto<ErrorLocation<'e, E>>,
     {
         let res = deser_fn(input);
-        match res {
-            Err(ref e) => {
-                if let Ok(el) = e.try_into() {
-                    eprintln!("{}", el.error_to_string(input));
-                } else {
-                    eprintln!("{}", e);
-                }
+        if let Err(ref e) = res {
+            if let Ok(el) = e.try_into() {
+                eprintln!("{}", el.error_to_string(input));
+            } else {
+                eprintln!("{}", e);
             }
-            _ => (),
         }
         assert!(res.is_ok());
         let parsed = res.unwrap();
