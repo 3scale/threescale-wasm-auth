@@ -48,7 +48,6 @@ serde_yaml = { version = "^0.8", optional = true }
 
 [dev-dependencies]
 serde_yaml = "^0.8"
-cargo-deny = "^0.9"
 
 [lib]
 # rlib included to be able to use #[test] without compiler and linker issues
