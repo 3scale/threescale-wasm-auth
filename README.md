@@ -4,7 +4,7 @@
 [![Security audit](https://github.com/3scale/threescale-wasm-auth/actions/workflows/audit.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/Dependencies/)
 [![Licensing](https://github.com/3scale/threescale-wasm-auth/actions/workflows/license.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/Licensing/)
 [![Clippy check](https://github.com/3scale/threescale-wasm-auth/actions/workflows/clippy.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/Clippy/)
-[![Rustfmt](https://github.com/3scale/threescale-wasm-auth/actions/workflows/rustfmt.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/Rustfmt/)
+[![Rustfmt](https://github.com/3scale/threescale-wasm-auth/actions/workflows/format.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/Rustfmt/)
 
 This is a proxy-wasm filter integration for 3scale.
 
