@@ -1,8 +1,8 @@
 # Proxy-WASM Authorization extension using 3scale
 
-![Clippy check](https://github.com/3scale-rs/threescale-wasm-auth/workflows/Clippy%20check/badge.svg)
-![Security audit](https://github.com/3scale-rs/threescale-wasm-auth/workflows/Security%20audit/badge.svg)
-![Continuous integration](https://github.com/3scale-rs/threescale-wasm-auth/workflows/Continuous%20integration/badge.svg)
+![Clippy check](https://github.com/3scale-rs/threescale-wasm-auth/actions/workflows/clippy.yaml/badge.svg)
+![Security audit](https://github.com/3scale/threescale-wasm-auth/actions/workflows/audit.yaml/badge.svg)
+[![Build Status](https://github.com/3scale/threescale-wasm-auth/actions/workflows/ci.yaml/badge.svg)](https://github.com/3scale/threescale-wasm-auth/actions/workflows/CI/)
 
 This is a proxy-wasm filter integration for 3scale.
 

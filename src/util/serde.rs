@@ -113,7 +113,7 @@ impl<'e, E: std::error::Error + std::fmt::Display> ErrorLocation<'e, E> {
             .chain(after_it)
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn error_to_string(&self, input: &str) -> String {
         self.error_lines(input, 2, 2).collect::<Vec<_>>().join("\n")
     }
