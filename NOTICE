@@ -1,6 +1,5 @@
-   threescalers - 3scale API Client
-   Copyright (c) 2017 Alejandro Martinez Ruiz <alex@flawedcode.org>
-   Copyright (c) 2017 David Ortiz Lopez <z.david.ortiz@gmail.com>
+   threescale-wasm-auth - 3scale Proxy-WASM filter
+   Copyright (c) 2020, 2021 Red Hat, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
