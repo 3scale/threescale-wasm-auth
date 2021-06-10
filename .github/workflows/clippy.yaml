@@ -24,7 +24,21 @@ jobs:
           components: clippy, rustfmt
           override: true
 
-      - uses: actions-rs/clippy-check@v1
+      - name: Check workflow permissions
+        uses: scherermichael-oss/action-has-permission@1.0.6
+        id: check_permissions
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run clippy action to produce annotations
+        if: steps.check_permissions.outputs.has-permission
+        uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-targets --all-features -- -D warnings
+
+      - name: Run clippy manually without annotations
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --all-targets --all-features -- -D warnings
