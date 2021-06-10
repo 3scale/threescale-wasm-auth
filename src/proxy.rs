@@ -7,6 +7,7 @@ use proxy_wasm::traits::{Context, HttpContext, RootContext};
 use proxy_wasm::types::{BufferType, ChildContext, FilterHeadersStatus, LogLevel};
 
 use crate::{configuration::Configuration, util::serde::ErrorLocation};
+use threescalers::application::Application;
 
 pub struct HttpAuthThreescale {
     context_id: u32,
@@ -44,6 +45,20 @@ impl HttpContext for HttpAuthThreescale {
             }
             Ok(params) => params,
         };
+
+        let passthrough_metadata: bool = self.configuration().passthrough_metadata.unwrap_or(false);
+
+        if passthrough_metadata {
+            match self.threescale_info_to_metadata(&ar) {
+                Ok(()) => return FilterHeadersStatus::Continue,
+                Err(e) => {
+                    error!("failed to pass app info to next filter: {:?}", e);
+                    self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+                    info!("threescale_wasm_auth: 403 sent");
+                    return FilterHeadersStatus::StopIteration;
+                }
+            }
+        }
 
         if let Some(backend) = backend {
             let request = match authrep::build_call(&ar) {
@@ -234,6 +249,46 @@ impl RootContext for RootAuthThreescale {
         };
 
         Some(ChildContext::HttpContext(Box::new(ctx)))
+    }
+}
+
+impl HttpAuthThreescale {
+    fn threescale_info_to_metadata(&self, ar: &authrep::AuthRep) -> Result<(), anyhow::Error> {
+        let apps = ar.apps();
+        let service = ar.service();
+        let usages = ar.usages();
+
+        if apps.is_empty() {
+            anyhow::bail!("could not extract application credentials");
+        }
+
+        if apps.len() > 1 {
+            debug!(
+                "found more than one source match for application - going to send {:?}",
+                apps[0]
+            );
+        }
+
+        let mut app_id_key = String::new();
+        let (header, value) = match &apps[0] {
+            Application::AppId(app_id, app_key) => {
+                app_id_key.push_str(app_id.as_ref());
+                if let Some(key) = app_key {
+                    app_id_key.push(':');
+                    app_id_key.push_str(key.as_ref());
+                }
+                ("x-3scale-app-id", app_id_key.as_str())
+            }
+            Application::UserKey(user_key) => ("x-3scale-user-key", user_key.as_ref()),
+            Application::OAuthToken(_token) => anyhow::bail!("Oauth token not supported"),
+        };
+
+        // Adding threescale info as request headers
+        self.add_http_request_header(header, value);
+        self.add_http_request_header("x-3scale-service-id", service.id());
+        self.add_http_request_header("x-3scale-service-token", service.token());
+        self.add_http_request_header("x-3scale-usages", &serde_json::to_string(&usages)?);
+        Ok(())
     }
 }
 

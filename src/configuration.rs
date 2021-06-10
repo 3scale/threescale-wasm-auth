@@ -176,6 +176,7 @@ mod test {
                     }],
                 }],
             }]),
+            passthrough_metadata: Some(true),
         })
     }
 
@@ -301,7 +302,8 @@ mod test {
                     }
                   ]
                 }
-              ]
+              ],
+              "passthrough_metadata": true
             }"#;
         }
 
