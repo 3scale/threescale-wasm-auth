@@ -9,6 +9,8 @@ pub struct Configuration {
     pub system: Option<System>,
     pub backend: Option<Backend>,
     pub services: Option<Vec<Service>>,
+    // pass request to the next filter in the chain
+    pub passthrough_metadata: Option<bool>,
 }
 
 impl Configuration {
