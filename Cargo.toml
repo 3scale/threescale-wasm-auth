@@ -29,13 +29,13 @@ danger = []
 [patch.crates-io]
 url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
 percent-encoding = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
-threescalers = { git = "https://github.com/3scale-rs/threescalers", branch = "v0.8-pre" }
+threescalers = { git = "https://github.com/3scale-rs/threescalers", tag = "v0.8.0" }
 
 [dependencies]
 proxy-wasm = { git = "https://github.com/3scale/proxy-wasm-rust-sdk", branch = "3scale" }
 log = "^0.4"
 serde = { version = "^1", features = ["derive"] }
-threescalers = { git = "https://github.com/3scale-rs/threescalers", branch = "v0.8-pre", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"] }
+threescalers = { git = "https://github.com/3scale-rs/threescalers", tag = "v0.8.0", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"] }
 anyhow = "^1"
 thiserror = "^1"
 url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale", features = ["serde"] }
