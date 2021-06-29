@@ -45,6 +45,15 @@ impl HttpContext for HttpAuthThreescale {
 
         let backend = self.configuration().get_backend().ok();
 
+        let (extraconfig, cas) = if let Some(system) = self.configuration().system() {
+            self.get_shared_data(system.upstream().url.as_str())
+        } else {
+            debug!(self, "No data found for system configuration");
+            (None, None)
+        };
+
+        info!(self, "cas: {:?}, extraconfig: {:?}", cas, extraconfig);
+
         let rh = RequestHeaders::new(self);
 
         let ar = match authrep::authrep(self, &rh) {
@@ -132,7 +141,13 @@ impl HttpContext for HttpAuthThreescale {
 }
 
 impl Context for HttpAuthThreescale {
-    fn on_http_call_response(&mut self, token_id: u32, _: usize, _: usize, _: usize) {
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        _num_headers: usize,
+        _body_size: usize,
+        _num_trailers: usize,
+    ) {
         info!(
             self,
             "threescale_wasm_auth: http_ctx: on_http_call_response: token id is {}", token_id

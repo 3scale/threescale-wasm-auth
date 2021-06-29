@@ -83,6 +83,29 @@ impl Context for RootAuthThreescale {
 
         info!(self, "registered");
     }
+
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        _num_headers: usize,
+        _body_size: usize,
+        _num_trailers: usize,
+    ) {
+        let status = self
+            .get_http_call_response_headers()
+            .into_iter()
+            .find_map(|(key, val)| {
+                if key.as_str() == ":status" {
+                    Some(val)
+                } else {
+                    None
+                }
+            });
+        info!(
+            "threescale_wasm_auth: root_ctx: on_http_call_response: token id is {}, status {:?}",
+            token_id, status
+        );
+    }
 }
 
 impl RootContext for RootAuthThreescale {
@@ -168,6 +191,8 @@ impl RootContext for RootAuthThreescale {
             "on_configure: plugin configuration {:#?}", self.configuration
         );
 
+        self.set_tick_period(Duration::from_secs(10));
+
         true
     }
 
@@ -182,7 +207,51 @@ impl RootContext for RootAuthThreescale {
             id: self.rng.next_u32(),
             log_id: format!("{} ({}/http)", self.id, self.context_id),
         };
+        let boxctx = Box::new(ctx);
+        //self.children.push(boxctx.as_ref());
+        let childctx = ChildContext::HttpContext(boxctx);
 
-        Some(ChildContext::HttpContext(Box::new(ctx)))
+        Some(childctx)
+    }
+
+    fn on_tick(&mut self) {
+        use core::convert::TryFrom;
+
+        log::warn!("executing on_tick for root ctx");
+
+        if let Some(cfg) = self.configuration.as_ref() {
+            let config = cfg.get();
+            if let Some(system) = config.system() {
+                let upstream = system.upstream();
+                let url = &upstream.url;
+                let mut url = url.clone();
+                url.set_path("testing.call");
+                let res = upstream.call_url(
+                    self,
+                    &url,
+                    "GET",
+                    vec![],
+                    None,
+                    None,
+                    Some(u64::try_from(upstream.timeout.as_millis()).unwrap()),
+                );
+
+                if let Err(e) = &res {
+                    log::error!(
+                        "failed to call system configuration cluster {} (with URL {}): {:#?}",
+                        upstream.name(),
+                        url,
+                        e
+                    );
+                }
+
+                //self.config_call = res.ok();
+                log::warn!(
+                    "setting up on_tick for root ctx for {} seconds",
+                    system.ttl().as_secs()
+                );
+                self.set_tick_period(system.ttl());
+            }
+        }
     }
 }
