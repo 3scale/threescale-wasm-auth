@@ -152,6 +152,12 @@ impl HttpAuthThreescale {
             anyhow::bail!("could not extract application credentials");
         }
 
+        let backend = self.configuration().backend();
+        if backend.is_none() {
+            anyhow::bail!("backend not configured");
+        }
+        let upstream = backend.unwrap().upstream();
+
         if apps.len() > 1 {
             debug!(
                 "found more than one source match for application - going to send {:?}",
@@ -175,6 +181,9 @@ impl HttpAuthThreescale {
 
         // Adding threescale info as request headers
         self.add_http_request_header(header, value);
+        self.add_http_request_header("x-3scale-cluster-name", upstream.name());
+        self.add_http_request_header("x-3scale-upstream-url", upstream.url.as_str());
+        self.add_http_request_header("x-3scale-timeout", &upstream.default_timeout().to_string());
         self.add_http_request_header("x-3scale-service-id", service.id());
         self.add_http_request_header("x-3scale-service-token", service.token());
         self.add_http_request_header("x-3scale-usages", &serde_json::to_string(&usages)?);
