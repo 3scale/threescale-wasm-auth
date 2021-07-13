@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use proxy_wasm::traits::{Context, RootContext};
 use proxy_wasm::types::{BufferType, ChildContext};
 
@@ -11,6 +13,7 @@ use super::http_context::HttpAuthThreescale;
 pub(super) struct RootAuthThreescale {
     vm_configuration: Option<Vec<u8>>,
     configuration: Option<Configuration>,
+    dynconf_cas: Option<u32>,
     rng: ThreadRng,
     context_id: u32,
     id: u32,
@@ -22,6 +25,7 @@ impl RootAuthThreescale {
         Self {
             vm_configuration: None,
             configuration: None,
+            dynconf_cas: None,
             rng: ThreadRng,
             context_id: 0,
             id: 0,
@@ -102,8 +106,10 @@ impl Context for RootAuthThreescale {
                 }
             });
         info!(
+            self,
             "threescale_wasm_auth: root_ctx: on_http_call_response: token id is {}, status {:?}",
-            token_id, status
+            token_id,
+            status
         );
     }
 }
@@ -217,13 +223,74 @@ impl RootContext for RootAuthThreescale {
     fn on_tick(&mut self) {
         use core::convert::TryFrom;
 
-        log::warn!("executing on_tick for root ctx");
+        warn!(self, "{}: executing on_tick for root ctx", self.context_id);
+
+        let id = self.rng.next_u32();
 
         if let Some(cfg) = self.configuration.as_ref() {
             let config = cfg.get();
             if let Some(system) = config.system() {
                 let upstream = system.upstream();
                 let url = &upstream.url;
+                let key_shared_mem = format!("lock_{}", url.as_str());
+                let (mut value, mut cas) = self.get_shared_data(key_shared_mem.as_str());
+                if let Some(oid) = cas {
+                    // wait 10-20s
+                    let next_period = self.rng.next_u32() % 10_000 + 10_000;
+                    info!(self,
+                        "{}: {} owned by ctx with rand id {}, bailing temporarily for {} ms: value => {:?}",
+                        self.context_id,
+                        key_shared_mem,
+                        oid,
+                        next_period,
+                        value
+                    );
+                    self.set_tick_period(Duration::from_millis(next_period as u64));
+                    return;
+                }
+
+                //let ttl = ttl + system.ttl().as_secs();
+
+                info!(self, "RNG id: {}, trying to acquire {}", id, key_shared_mem);
+
+                let v = value.as_ref().map(|v| v.as_slice());
+                let lock = self.set_shared_data(key_shared_mem.as_str(), v, Some(id));
+                match lock {
+                    Ok(()) => {
+                        info!(self, "GOT THE LOCK WITH ID: {}", id);
+                    }
+                    _ => {
+                        info!(self, "COULD NOT TAKE THE LOCK WITH ID: {}, uish", id);
+                    }
+                }
+
+                let _ = value.replace(format!("some_val_{}", id).as_bytes().into());
+
+                let _ = cas.replace(id);
+                let v = value.as_ref().map(|v| v.as_slice());
+                let set = self.set_shared_data(key_shared_mem.as_str(), v, cas);
+                if set.is_ok() {
+                    // got ownership
+                    info!(
+                        self,
+                        "{}: got ownership of {} with id {}", self.context_id, key_shared_mem, id
+                    );
+                } else {
+                    let status = set.unwrap_err();
+                    // wait 10-20s
+                    let next_period = self.rng.next_u32() % 10_000 + 10_000;
+                    warn!(self,
+                        "{}: could not get ownership of {}, status {:?} ({}), bailing temporarily for {} ms",
+                        self.context_id,
+                        key_shared_mem,
+                        status,
+                        status as u32,
+                        next_period,
+                    );
+                    self.set_tick_period(Duration::from_millis(next_period as u64));
+                    return;
+                }
+
                 let mut url = url.clone();
                 url.set_path("testing.call");
                 let res = upstream.call_url(
@@ -237,7 +304,8 @@ impl RootContext for RootAuthThreescale {
                 );
 
                 if let Err(e) = &res {
-                    log::error!(
+                    error!(
+                        self,
                         "failed to call system configuration cluster {} (with URL {}): {:#?}",
                         upstream.name(),
                         url,
@@ -245,8 +313,16 @@ impl RootContext for RootAuthThreescale {
                     );
                 }
 
+                info!(
+                    self,
+                    "{}: releasing cas for {}", self.context_id, key_shared_mem
+                );
+                self.set_shared_data(key_shared_mem.as_str(), v, None)
+                    .expect("failed to set_shared_data with None cas");
+
                 //self.config_call = res.ok();
-                log::warn!(
+                warn!(
+                    self,
                     "setting up on_tick for root ctx for {} seconds",
                     system.ttl().as_secs()
                 );
