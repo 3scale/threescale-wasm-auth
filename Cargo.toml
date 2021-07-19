@@ -41,8 +41,8 @@ thiserror = "^1"
 url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale", features = ["serde"] }
 regex = { version = "^1", default-features = false, features = ["std", "perf"] }
 base64 = "^0.13"
-prost = { version = "^0.7", features = ["prost-derive"] }
-prost-types = { version = "^0.7" }
+prost = { version = "^0.8", features = ["prost-derive"] }
+prost-types = { version = "^0.8" }
 serde_json = { version = "^1" }
 serde_yaml = { version = "^0.8", optional = true }
 
