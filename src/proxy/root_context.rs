@@ -1,9 +1,9 @@
 use log::{debug, error, info, warn};
-
 use proxy_wasm::traits::{Context, RootContext};
 use proxy_wasm::types::{BufferType, ChildContext};
 
 use crate::configuration::Configuration;
+use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
 
 use super::http_context::HttpAuthThreescale;
@@ -11,6 +11,8 @@ use super::http_context::HttpAuthThreescale;
 pub(super) struct RootAuthThreescale {
     vm_configuration: Option<Vec<u8>>,
     configuration: Option<Configuration>,
+    rng: ThreadRng,
+    context_id: u32,
 }
 
 impl RootAuthThreescale {
@@ -18,11 +20,43 @@ impl RootAuthThreescale {
         Self {
             vm_configuration: None,
             configuration: None,
+            rng: ThreadRng,
+            context_id: 0,
         }
     }
 }
 
-impl Context for RootAuthThreescale {}
+impl Context for RootAuthThreescale {
+    fn on_registered(&mut self, context_id: u32) {
+        self.context_id = context_id;
+        // Initialize the PRNG for this thread in the root context
+        // This only needs to happen once per thread. Since we are
+        // single-threaded, this means it just needs to happen once.
+        self.rng = match thread_rng_init_fallible(self, context_id) {
+            Ok(r) => r,
+            Err(e) => {
+                log::error!(
+                    "{}: FATAL: failed to initialize thread pseudo RNG: {}",
+                    context_id,
+                    e
+                );
+                panic!("failed to initialize thread pseudo RNG: {}", e);
+            }
+        };
+
+        log::info!("{}: Testing random values:", context_id);
+        // Could as well use `self.rng.next_u32()` or `self.rng.u32()`,
+        // but `with` is more efficient for multiple sequential calls
+        // by amortizing a single access to TLS and initialization check.
+        self.rng.with(|r| {
+            for _ in 0..10 {
+                use rand::RngCore;
+                let n = r.next_u32();
+                log::info!("{} ({:#b})", n, n);
+            }
+        })
+    }
+}
 
 impl RootContext for RootAuthThreescale {
     fn on_vm_start(&mut self, vm_configuration_size: usize) -> bool {
