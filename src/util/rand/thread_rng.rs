@@ -57,13 +57,13 @@ impl ThreadRng {
 
     // next_u32 without using the RngCore trait which requires a mutable reference
     #[inline]
-    pub fn u32(&self) -> u32 {
+    pub fn next_u32(&self) -> u32 {
         imp::next_u32()
     }
 
     // next_u64 without using the RngCore trait which requires a mutable reference
     #[inline]
-    pub fn u64(&self) -> u64 {
+    pub fn next_u64(&self) -> u64 {
         imp::next_u64()
     }
 
@@ -76,11 +76,11 @@ impl ThreadRng {
 
 impl RngCore for ThreadRng {
     fn next_u32(&mut self) -> u32 {
-        self.u32()
+        (&*self).next_u32()
     }
 
     fn next_u64(&mut self) -> u64 {
-        self.u64()
+        (&*self).next_u64()
     }
 
     fn fill_bytes(&mut self, dest: &mut [u8]) {
