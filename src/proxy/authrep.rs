@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use super::request_headers::RequestHeaders;
 use super::HttpAuthThreescale;
 use crate::threescale::CredentialsError;
-use log::debug;
 use threescalers::{
     api_call::{ApiCall, Kind},
     application::Application,
@@ -79,13 +78,24 @@ pub fn authrep<'a>(
 
     let apps = credentials.resolve(ctx, rh, &url)?;
 
-    debug!("found credentials, values {:#?}", apps);
+    debug!(ctx, "found credentials, values {:#?}", apps);
+    if apps.len() > 1 {
+        debug!(
+            ctx,
+            "found more than one source match for application - going to use {:?}", apps[0]
+        );
+    }
 
     let mut usages = std::collections::HashMap::new();
     for rule in service.mapping_rules() {
-        debug!("matching pat {} against rule {:#?}", pattern.as_str(), rule);
+        debug!(
+            ctx,
+            "matching pat {} against rule {:#?}",
+            pattern.as_str(),
+            rule
+        );
         if rule.is_match(&method, pattern.as_str()) {
-            debug!("matched pattern in {}", pattern);
+            debug!(ctx, "matched pattern in {}", pattern);
             for usage in rule.usages() {
                 let value = usages.entry(usage.name()).or_insert(0);
                 *value += usage.delta();
@@ -111,12 +121,12 @@ pub fn build_call(ar: &AuthRep) -> Result<Request, anyhow::Error> {
         anyhow::bail!("could not extract application credentials");
     }
 
-    if apps.len() > 1 {
-        debug!(
-            "found more than one source match for application - going to use {:?}",
-            apps[0]
-        );
-    }
+    //if apps.len() > 1 {
+    //    debug!(
+    //        "found more than one source match for application - going to use {:?}",
+    //        apps[0]
+    //    );
+    //}
 
     let app = &apps[0];
 
