@@ -1,4 +1,3 @@
-use log::debug;
 use proxy_wasm::traits::HttpContext;
 use std::convert::TryFrom;
 use thiserror::Error;
@@ -106,7 +105,7 @@ impl RequestHeaders {
     }
 
     pub fn url(&self) -> Result<Url, anyhow::Error> {
-        debug!("headers: {:?}", self.0);
+        log::debug!("headers: {:?}", self.0);
 
         let scheme = self.get_scheme();
         let authority = self.get(":authority").ok_or(MetadataError::Authority)?;

@@ -1,16 +1,24 @@
-use log::{debug, error, info};
 use proxy_wasm::traits::{Context, HttpContext};
 use proxy_wasm::types::FilterHeadersStatus;
 use threescalers::application::Application;
 
 use crate::configuration::Configuration;
+use crate::log::IdentLogger;
 
 use super::authrep;
 use super::request_headers::RequestHeaders;
 
 pub struct HttpAuthThreescale {
-    pub context_id: u32,
     pub configuration: Configuration,
+    pub context_id: u32,
+    pub id: u32,
+    pub log_id: String,
+}
+
+impl IdentLogger for HttpAuthThreescale {
+    fn ident(&self) -> &str {
+        self.log_id.as_str()
+    }
 }
 
 impl HttpAuthThreescale {
@@ -22,7 +30,11 @@ impl HttpAuthThreescale {
 
 impl HttpContext for HttpAuthThreescale {
     fn on_http_request_headers(&mut self, _: usize) -> FilterHeadersStatus {
-        info!("on_http_request_headers: context_id {}", self.context_id);
+        info!(
+            self,
+            "on_http_request_headers: context_id {}", self.context_id
+        );
+
         //let backend = match self.configuration.get_backend() {
         //    Err(e) => {
         //        error!("error obtaining configuration for 3scale backend: {:?}", e);
@@ -37,9 +49,9 @@ impl HttpContext for HttpAuthThreescale {
 
         let ar = match authrep::authrep(self, &rh) {
             Err(e) => {
-                error!("error computing authrep {:?}", e);
+                error!(self, "error computing authrep {:?}", e);
                 self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                info!("threescale_wasm_auth: 403 sent");
+                info!(self, "threescale_wasm_auth: 403 sent");
                 return FilterHeadersStatus::StopIteration;
             }
             Ok(params) => params,
@@ -51,9 +63,9 @@ impl HttpContext for HttpAuthThreescale {
             match self.threescale_info_to_metadata(&ar) {
                 Ok(()) => return FilterHeadersStatus::Continue,
                 Err(e) => {
-                    error!("failed to pass app info to next filter: {:?}", e);
+                    error!(self, "failed to pass app info to next filter: {:?}", e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!("threescale_wasm_auth: 403 sent");
+                    info!(self, "threescale_wasm_auth: 403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
             }
@@ -62,9 +74,9 @@ impl HttpContext for HttpAuthThreescale {
         if let Some(backend) = backend {
             let request = match authrep::build_call(&ar) {
                 Err(e) => {
-                    error!("error computing authrep request {:?}", e);
+                    error!(self, "error computing authrep request {:?}", e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!("threescale_wasm_auth: 403 sent");
+                    info!(self, "threescale_wasm_auth: 403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
                 Ok(request) => request,
@@ -91,24 +103,24 @@ impl HttpContext for HttpAuthThreescale {
             ) {
                 Ok(call_token) => call_token,
                 Err(e) => {
-                    error!("on_http_request_headers: could not dispatch HTTP call to {}: did you create the cluster to do so? - {:#?}", upstream.name(), e);
+                    error!(self, "on_http_request_headers: could not dispatch HTTP call to {}: did you create the cluster to do so? - {:#?}", upstream.name(), e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!("threescale_wasm_auth: 403 sent");
+                    info!(self, "threescale_wasm_auth: 403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
             };
 
             info!(
-                "threescale_wasm_auth: on_http_request_headers: call token is {}",
-                call_token
+                self,
+                "threescale_wasm_auth: on_http_request_headers: call token is {}", call_token
             );
 
             FilterHeadersStatus::StopIteration
         } else {
             // no backend configured
-            debug!("on_http_request_headers: no backend configured");
+            debug!(self, "on_http_request_headers: no backend configured");
             self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-            info!("threescale_wasm_auth: 403 sent");
+            info!(self, "threescale_wasm_auth: 403 sent");
             FilterHeadersStatus::StopIteration
         }
     }
@@ -120,10 +132,10 @@ impl HttpContext for HttpAuthThreescale {
 }
 
 impl Context for HttpAuthThreescale {
-    fn on_http_call_response(&mut self, call_token: u32, _: usize, _: usize, _: usize) {
+    fn on_http_call_response(&mut self, token_id: u32, _: usize, _: usize, _: usize) {
         info!(
-            "threescale_wasm_auth: http_ctx: on_http_call_response: token id is {}",
-            call_token
+            self,
+            "threescale_wasm_auth: http_ctx: on_http_call_response: token id is {}", token_id
         );
         let authorized = self
             .get_http_call_response_headers()
@@ -132,12 +144,12 @@ impl Context for HttpAuthThreescale {
             .map_or(false, |(_, value)| value.as_str() == "200");
 
         if authorized {
-            info!("on_http_call_response: authorized {}", call_token);
+            info!(self, "on_http_call_response: authorized {}", token_id);
             self.resume_http_request();
         } else {
-            info!("on_http_call_response: forbidden {}", call_token);
+            info!(self, "on_http_call_response: forbidden {}", token_id);
             self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-            info!("threescale_wasm_auth: 403 sent");
+            info!(self, "threescale_wasm_auth: 403 sent");
         }
     }
 }
@@ -157,13 +169,6 @@ impl HttpAuthThreescale {
             anyhow::bail!("backend not configured");
         }
         let upstream = backend.unwrap().upstream();
-
-        if apps.len() > 1 {
-            debug!(
-                "found more than one source match for application - going to send {:?}",
-                apps[0]
-            );
-        }
 
         let mut app_id_key = String::new();
         let (header, value) = match &apps[0] {

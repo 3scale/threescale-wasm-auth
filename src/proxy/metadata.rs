@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
 
-use log::debug;
 use prost::Message;
 use prost_types::value::Kind as ProtoKind;
 use prost_types::{ListValue as ProtoList, Struct as ProtoStruct, Value as ProtoValue};
@@ -142,7 +141,7 @@ pub trait ValueExt {
     fn as_bool(&self) -> Option<bool>;
     fn match_one<'a>(&'a self, keys: &[&str]) -> Option<&'a Self>;
     fn lookup<'a>(&self, path: &[&'a str]) -> Result<(&Self, &'a str), LookupError> {
-        debug!("looking up path {:?}", path);
+        log::debug!("looking up path {:?}", path);
         path.iter()
             .try_fold((self, "(root)"), |(acc, prev_segment), &segment| {
                 if segment.is_empty() {
