@@ -136,34 +136,13 @@ impl Source {
         };
 
         res.and_then(|(v, ops)| {
+            let values = vec![v];
             if let Some(ops) = ops {
-                process_encoding_and_format(v, ops).ok()
+                let ops = ops.iter().collect::<Vec<_>>();
+                super::process_operations(values, ops.as_slice()).ok()
             } else {
-                Some(vec![v])
+                Some(values)
             }
         })
     }
-}
-
-fn process_encoding_and_format<'a>(
-    v: Cow<'a, str>,
-    ops: &[Operation],
-) -> Result<Vec<Cow<'a, str>>, super::OperationError> {
-    let mut v = v;
-    for op in ops {
-        v = match op {
-            Operation::Decode(decoding) => decoding.decode(v)?,
-            Operation::Format(format) => {
-                let mut vs = format.parse(v)?;
-                if vs.len() == 1 {
-                    vs.remove(0)
-                } else {
-                    // multiple values... we don't know to which one the next ops (if any) apply
-                    return Ok(vs);
-                }
-            }
-        };
-    }
-
-    Ok(vec![v])
 }
