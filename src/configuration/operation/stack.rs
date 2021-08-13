@@ -54,6 +54,10 @@ pub enum Stack {
     FlatMap {
         ops: Vec<super::Operation>,
     },
+    Log {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+    },
 }
 
 impl Default for Stack {
@@ -167,6 +171,18 @@ impl Stack {
                     Err(e) => return Err(StackError::InnerOperationError(Box::new(e))),
                 };
                 r.into_iter().flatten().collect()
+            }
+            Self::Log { id } => {
+                log::info!(
+                    "[3scale-auth] stack at {}: {}",
+                    id.as_ref().map(|id| id.as_str()).unwrap_or("()"),
+                    input
+                        .iter()
+                        .map(|s| format!(r#""{}""#, s))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                input
             }
         };
 
