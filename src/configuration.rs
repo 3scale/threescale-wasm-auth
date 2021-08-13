@@ -140,11 +140,17 @@ mod test {
                     Some(vec![Source::QueryString {
                         keys: vec!["api_key".into()],
                         ops: Some(vec![
+                            Operation::Control(Control::Assert(
+                                Operation::Control(Control::True).into(),
+                            )),
                             Operation::StringOp(StringOp::Split {
                                 separator: ":".into(),
                                 max: Some(2),
                             }),
                             Operation::Stack(Stack::Reverse),
+                            Operation::Stack(Stack::Log {
+                                id: Some("logid".into()),
+                            }),
                             Operation::Stack(Stack::Take {
                                 head: None,
                                 tail: Some(1),
