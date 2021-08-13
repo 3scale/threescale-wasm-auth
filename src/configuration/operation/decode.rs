@@ -10,7 +10,7 @@ pub enum DecodeError {
     Utf8Error(#[from] std::string::FromUtf8Error),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Decode {
     PlainText,

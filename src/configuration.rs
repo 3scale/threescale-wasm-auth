@@ -139,11 +139,17 @@ mod test {
                 credentials: Credentials::new(
                     Some(vec![Source::QueryString {
                         keys: vec!["api_key".into()],
-                        ops: Some(vec![Operation::Format(Format::Joined {
-                            separator: ":".into(),
-                            max: Some(2),
-                            indexes: vec![0],
-                        })]),
+                        ops: Some(vec![
+                            Operation::StringOp(StringOp::Split {
+                                separator: ":".into(),
+                                max: Some(2),
+                            }),
+                            Operation::Stack(Stack::Reverse),
+                            Operation::Stack(Stack::Take {
+                                head: None,
+                                tail: Some(1),
+                            }),
+                        ]),
                     }]),
                     Some(vec![
                         Source::Filter {
@@ -228,8 +234,8 @@ mod test {
                           ],
                           "ops": [
                             {
-                              "format": {
-                                "joined": {
+                              "string": {
+                                "split": {
                                   "separator": ":",
                                   "max": 2,
                                   "indexes": [

@@ -11,11 +11,9 @@ pub enum FormatError {
     LookupError(#[from] crate::proxy::metadata::LookupError),
     #[error("could not find a string")]
     NoStringFound,
-    #[error("index out of bounds")]
-    IndexOutOfBounds,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     Plain,
@@ -31,20 +29,6 @@ pub enum Format {
         path: Vec<String>,
         keys: Vec<String>,
     },
-    Joined {
-        #[serde(default = "defaults::separator")]
-        separator: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        max: Option<usize>,
-        #[serde(default)]
-        indexes: Vec<usize>,
-    },
-}
-
-mod defaults {
-    pub(super) fn separator() -> String {
-        ":".into()
-    }
 }
 
 impl Default for Format {
@@ -54,31 +38,10 @@ impl Default for Format {
 }
 
 impl Format {
-    pub fn parse<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, FormatError> {
+    pub fn process<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, FormatError> {
         use crate::proxy::metadata::ValueExt;
         let res = match self {
             Self::Plain => vec![input],
-            Self::Joined {
-                separator,
-                max,
-                indexes,
-            } => {
-                let max = max.unwrap_or(0);
-                let parts: Vec<_> = if max > 0 {
-                    input.splitn(max, separator).collect()
-                } else {
-                    input.split(separator).collect()
-                };
-                indexes.iter().try_fold(vec![], |mut acc, &idx| {
-                    parts
-                        .get(idx)
-                        .ok_or(FormatError::IndexOutOfBounds)
-                        .map(|&s| {
-                            acc.push(Cow::from(s.to_string()));
-                            acc
-                        })
-                })?
-            }
             Self::ProtoBuf { path, keys } => {
                 let st = <prost_types::Struct as prost::Message>::decode(input.as_bytes())?;
                 let v = prost_types::Value {
