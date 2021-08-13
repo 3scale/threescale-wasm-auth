@@ -165,8 +165,8 @@ resources:
                                         ],
                                         "ops": [
                                           {
-                                            "format": {
-                                              "joined": {
+                                            "string": {
+                                              "split": {
                                                 "separator": " ",
                                                 "max": 2,
                                                 "indexes": [1]
@@ -177,8 +177,8 @@ resources:
                                             "decode": "base64_urlsafe"
                                           },
                                           {
-                                            "format": {
-                                              "joined": {
+                                            "string": {
+                                              "split": {
                                                 "separator": ":",
                                                 "max": 2,
                                                 "indexes": [0, 1]
@@ -214,8 +214,8 @@ resources:
                                         ],
                                         "ops": [
                                           {
-                                            "format": {
-                                              "joined": {
+                                            "string": {
+                                              "split": {
                                                 "separator": ":",
                                                 "max": 2,
                                                 "indexes": [
