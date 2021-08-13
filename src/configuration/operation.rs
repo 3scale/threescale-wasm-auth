@@ -2,11 +2,13 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+mod control;
 mod decode;
 mod format;
 mod stack;
 mod string;
 
+pub use control::*;
 pub use decode::*;
 pub use format::*;
 pub use stack::*;
@@ -22,6 +24,8 @@ pub enum OperationError {
     StackError(#[from] StackError),
     #[error("string op error")]
     StringOpError(#[from] StringOpError),
+    #[error("control error")]
+    ControlError(#[from] ControlError),
     #[error("operation should have produced at least one value")]
     NoOutputValue,
 }
@@ -34,6 +38,7 @@ pub enum Operation {
     Format(Format),
     #[serde(rename = "string")]
     StringOp(StringOp),
+    Control(Control),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +55,12 @@ pub fn process_operations<'a>(
     for op in ops {
         v = match op {
             Operation::Stack(stack) => stack.process(v)?,
+            Operation::Control(control) => {
+                let value = v.pop().unwrap();
+                let values = control.process(value)?;
+                v.extend(values.into_iter());
+                v
+            }
             Operation::StringOp(string_op) => {
                 let value = v.pop().unwrap();
                 let values = string_op.process(value)?;

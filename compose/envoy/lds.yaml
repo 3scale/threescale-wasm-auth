@@ -112,6 +112,49 @@ resources:
                                       "header": {
                                         "keys": [
                                           "x-app-id"
+                                        ],
+                                        "ops": [
+                                          {
+                                            "control": {
+                                              "assert": {
+                                                "string": "reverse"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "stack": {
+                                              "log": {
+                                                "id": "prefix-check-before"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "control": {
+                                              "any": [
+                                                {
+                                                  "string": {
+                                                    "contents": {
+                                                      "prefix": "abc"
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "string": {
+                                                    "contents": {
+                                                      "prefix": "xyz"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "stack": {
+                                              "log": {
+                                                "id": "prefix-check-after"
+                                              }
+                                            }
+                                          }
                                         ]
                                       }
                                     },
