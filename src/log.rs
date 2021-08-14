@@ -36,6 +36,12 @@ pub trait IdentLogger {
     fn ident(&self) -> &str;
 }
 
+impl<'a> IdentLogger for &'a str {
+    fn ident(&self) -> &str {
+        self
+    }
+}
+
 #[macro_export(local_inner_macros)]
 macro_rules! log {
     ($ident:expr, $lvl:expr, $($arg:tt)+) => ({

@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use serde::{Deserialize, Serialize};
 
 use super::OperationError;
+use crate::log::LogLevel;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StackError {
@@ -46,6 +47,8 @@ pub enum Stack {
     Indexes(#[serde(default)] Vec<isize>),
     FlatMap(Vec<super::Operation>),
     Values {
+        #[serde(default)]
+        level: LogLevel,
         #[serde(skip_serializing_if = "Option::is_none")]
         id: Option<String>,
     },
@@ -156,9 +159,11 @@ impl Stack {
                 };
                 r.into_iter().flatten().collect()
             }
-            Self::Values { id } => {
-                log::info!(
-                    "[3scale-auth] stack at {}: {}",
+            Self::Values { level, id } => {
+                crate::log!(
+                    &"[3scale-auth/stack]",
+                    *level,
+                    "values at {}: {}",
                     id.as_ref().map(|id| id.as_str()).unwrap_or("()"),
                     input
                         .iter()
