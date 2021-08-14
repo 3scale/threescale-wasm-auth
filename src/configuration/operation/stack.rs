@@ -43,13 +43,8 @@ pub enum Stack {
         from: isize,
         to: isize,
     },
-    Lookup {
-        #[serde(default)]
-        indexes: Vec<isize>,
-    },
-    FlatMap {
-        ops: Vec<super::Operation>,
-    },
+    Indexes(#[serde(default)] Vec<isize>),
+    FlatMap(Vec<super::Operation>),
     Values {
         #[serde(skip_serializing_if = "Option::is_none")]
         id: Option<String>,
@@ -130,7 +125,7 @@ impl Stack {
 
                 input
             }
-            Self::Lookup { indexes } => {
+            Self::Indexes(indexes) => {
                 if indexes.is_empty() {
                     // take all values
                     input
@@ -148,7 +143,7 @@ impl Stack {
                     })?
                 }
             }
-            Self::FlatMap { ops } => {
+            Self::FlatMap(ops) => {
                 let r = match input.into_iter().try_fold(vec![], |mut acc, e| {
                     let ops = ops.iter().collect::<Vec<_>>();
                     super::process_operations(vec![e], ops.as_slice()).map(|v| {
