@@ -16,7 +16,6 @@ pub enum FormatError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
-    Plain,
     #[serde(rename = "json")]
     Json {
         #[serde(default)]
@@ -31,17 +30,10 @@ pub enum Format {
     },
 }
 
-impl Default for Format {
-    fn default() -> Self {
-        Self::Plain
-    }
-}
-
 impl Format {
     pub fn process<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, FormatError> {
         use crate::proxy::metadata::ValueExt;
         let res = match self {
-            Self::Plain => vec![input],
             Self::ProtoBuf { path, keys } => {
                 let st = <prost_types::Struct as prost::Message>::decode(input.as_bytes())?;
                 let v = prost_types::Value {

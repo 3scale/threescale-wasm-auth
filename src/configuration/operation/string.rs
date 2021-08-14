@@ -11,8 +11,6 @@ pub enum StringOpError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StringOp {
-    #[serde(rename = "nop")]
-    NoOp,
     Reverse,
     Split {
         #[serde(default = "defaults::separator")]
@@ -42,7 +40,6 @@ mod defaults {
 impl StringOp {
     pub fn process<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, StringOpError> {
         let res = match self {
-            Self::NoOp => vec![input],
             Self::Reverse => vec![input.chars().into_iter().rev().collect::<String>().into()],
             Self::Split { separator, max } => {
                 let max = max.unwrap_or(0);
