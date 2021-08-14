@@ -240,14 +240,12 @@ mod test {
                           ],
                           "ops": [
                             {
-                              "string": {
-                                "split": {
-                                  "separator": ":",
-                                  "max": 2,
-                                  "indexes": [
-                                    0
-                                  ]
-                                }
+                              "split": {
+                                "separator": ":",
+                                "max": 2,
+                                "indexes": [
+                                  0
+                                ]
                               }
                             }
                           ]
@@ -274,18 +272,14 @@ mod test {
                             "x-jwt-payload"
                           ],
                           "ops": [
+                            "base64_urlsafe",
                             {
-                              "decode": "base64_urlsafe"
-                            },
-                            {
-                              "format": {
-                                "json": {
-                                  "path": [],
-                                  "keys": [
-                                    "azp",
-                                    "aud"
-                                  ]
-                                }
+                              "json": {
+                                "path": [],
+                                "keys": [
+                                  "azp",
+                                  "aud"
+                                ]
                               }
                             }
                           ]
