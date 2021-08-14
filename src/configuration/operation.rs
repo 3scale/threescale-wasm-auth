@@ -31,7 +31,7 @@ pub enum OperationError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(untagged, rename_all = "snake_case")]
 pub enum Operation {
     Stack(Stack),
     Decode(Decode),

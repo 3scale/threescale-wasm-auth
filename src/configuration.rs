@@ -148,8 +148,8 @@ mod test {
                                 max: Some(2),
                             }),
                             Operation::Stack(Stack::Reverse),
-                            Operation::Stack(Stack::Log {
-                                id: Some("logid".into()),
+                            Operation::Stack(Stack::Values {
+                                id: Some("stackid".into()),
                             }),
                             Operation::Stack(Stack::Take {
                                 head: None,
@@ -240,14 +240,12 @@ mod test {
                           ],
                           "ops": [
                             {
-                              "string": {
-                                "split": {
-                                  "separator": ":",
-                                  "max": 2,
-                                  "indexes": [
-                                    0
-                                  ]
-                                }
+                              "split": {
+                                "separator": ":",
+                                "max": 2,
+                                "indexes": [
+                                  0
+                                ]
                               }
                             }
                           ]
@@ -274,18 +272,14 @@ mod test {
                             "x-jwt-payload"
                           ],
                           "ops": [
+                            "base64_urlsafe",
                             {
-                              "decode": "base64_urlsafe"
-                            },
-                            {
-                              "format": {
-                                "json": {
-                                  "path": [],
-                                  "keys": [
-                                    "azp",
-                                    "aud"
-                                  ]
-                                }
+                              "json": {
+                                "path": [],
+                                "keys": [
+                                  "azp",
+                                  "aud"
+                                ]
                               }
                             }
                           ]
