@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+use crate::log::LogLevel;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ControlError {
     #[error("requirement not satisfied")]
@@ -21,7 +23,11 @@ pub enum Control {
     None(Vec<super::Operation>),
     Assert(Box<super::Operation>),
     Refute(Box<super::Operation>),
-    Log { msg: String },
+    Log {
+        #[serde(default)]
+        level: LogLevel,
+        msg: String,
+    },
 }
 
 impl Control {
@@ -66,8 +72,8 @@ impl Control {
                 .is_err()
                 .then(|| vec![input])
                 .ok_or(ControlError::RequirementNotSatisfied)?,
-            Self::Log { msg } => {
-                log::info!("[3scale-auth]: {}", msg);
+            Self::Log { level, msg } => {
+                crate::log!(&"[3scale-auth/config]", *level, "{}", msg);
                 vec![input]
             }
         };
