@@ -148,8 +148,8 @@ mod test {
                                 max: Some(2),
                             }),
                             Operation::Stack(Stack::Reverse),
-                            Operation::Stack(Stack::Log {
-                                id: Some("logid".into()),
+                            Operation::Stack(Stack::Values {
+                                id: Some("stackid".into()),
                             }),
                             Operation::Stack(Stack::Take {
                                 head: None,

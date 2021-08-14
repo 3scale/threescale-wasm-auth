@@ -54,7 +54,7 @@ pub enum Stack {
     FlatMap {
         ops: Vec<super::Operation>,
     },
-    Log {
+    Values {
         #[serde(skip_serializing_if = "Option::is_none")]
         id: Option<String>,
     },
@@ -172,7 +172,7 @@ impl Stack {
                 };
                 r.into_iter().flatten().collect()
             }
-            Self::Log { id } => {
+            Self::Values { id } => {
                 log::info!(
                     "[3scale-auth] stack at {}: {}",
                     id.as_ref().map(|id| id.as_str()).unwrap_or("()"),
