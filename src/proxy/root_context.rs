@@ -38,6 +38,7 @@ impl IdentLogger for RootAuthThreescale {
 
 impl Context for RootAuthThreescale {
     fn on_registered(&mut self, context_id: u32) {
+        use crate::log::LogLevel;
         use core::fmt::Write as _;
 
         self.context_id = context_id;
@@ -49,7 +50,7 @@ impl Context for RootAuthThreescale {
             Err(e) => {
                 // No access yet to an initialized identity for logging, use raw API.
                 let _ = proxy_wasm::hostcalls::log(
-                    proxy_wasm::types::LogLevel::Critical,
+                    LogLevel::Critical.into(),
                     &format!(
                         "{}: FATAL: failed to initialize thread pseudo RNG: {}",
                         context_id, e

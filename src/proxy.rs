@@ -7,9 +7,6 @@ pub use http_context::HttpAuthThreescale;
 
 mod root_context;
 
-use proxy_wasm::traits::RootContext;
-use proxy_wasm::types::LogLevel;
-
 #[cfg_attr(
     all(
         target_arch = "wasm32",
@@ -28,7 +25,10 @@ use proxy_wasm::types::LogLevel;
 )]
 // This is a C interface, so make it explicit in the fn signature (and avoid mangling)
 extern "C" fn start() {
-    proxy_wasm::set_log_level(LogLevel::Trace);
+    use crate::log::LogLevel;
+    use proxy_wasm::traits::RootContext;
+
+    proxy_wasm::set_log_level(LogLevel::Trace.into());
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(root_context::RootAuthThreescale::new())
     });
