@@ -149,6 +149,7 @@ mod test {
                             }),
                             Operation::Stack(Stack::Reverse),
                             Operation::Stack(Stack::Values {
+                                level: Default::default(),
                                 id: Some("stackid".into()),
                             }),
                             Operation::Stack(Stack::Take {
