@@ -51,7 +51,7 @@ impl Source {
                     url.query_pairs().find_map(|(k, v)| {
                         if key == k.as_ref() {
                             // must extract from v and create a new Cow with owned data to stop relying on 'url url
-                            Some((v.into_owned().into(), ops))
+                            Some((vec![v.into_owned().into()], ops))
                         } else {
                             None
                         }
@@ -64,7 +64,7 @@ impl Source {
                     debug!("looking for header {}", key);
                     rh.get(key).map(|v| {
                         debug!("found header {} with value {} - ops {:?}", key, v, ops,);
-                        (Cow::from(v), ops)
+                        (vec![Cow::from(v)], ops)
                     })
                 })
             }
@@ -84,10 +84,6 @@ impl Source {
                 if let Some(property) = ctx.get_property(METADATA.into()) {
                     debug!("asked for {:?} property", METADATA);
 
-                    //let proto =
-                    //    <super::metadata::Metadata as ::prost::Message>::decode(property.as_slice());
-                    //<::prost_types::Value as ::prost::Message>::decode(property.as_slice());
-
                     let proto = Metadata::new(property.as_slice());
 
                     if let Ok(metadata) = proto {
@@ -97,20 +93,47 @@ impl Source {
                         .map(|(v, _segment)| {
                             keys.iter().find_map(|&k| v.lookup(&[k]).ok())
                                 .map(|(v, segment)| {
-                                    v.as_str()
+                                    v.as_str().map(|s| vec![s])
                                         .or_else(|| v.as_list().and_then(|l|
-                                            l.values.get(0).and_then(|v| v.as_str())))
-                                        .or_else(|| v.as_struct().and_then(|st|
-                                            if st.fields.len() == 1 { st.fields.values().next().and_then(|v| v.as_str()) } else { None } ))
+                                            l.values.iter().try_fold(vec![], |mut acc, v| {
+                                                v.as_str()
+                                                    .map(|s| {
+                                                        acc.push(s);
+                                                        acc
+                                                    })
+                                            })
+                                        ))
+                                        .or_else(|| v.as_struct().and_then(|st| {
+                                            if st.fields.len() == 1 {
+                                                st.fields.values().next().and_then(|v| {
+                                                    v.as_str().map(|s| vec![s])
+                                                        .or_else(|| v.as_list().and_then(|l|
+                                                            l.values.iter().try_fold(vec![], |mut acc, v| {
+                                                            v.as_str()
+                                                                .map(|s| {
+                                                                    acc.push(s);
+                                                                    acc
+                                                                })
+                                                            })
+                                                        ))
+                                                })
+                                            } else {
+                                                None
+                                            }
+                                        }))
                                     .ok_or_else(|| {
                                         format!("a string, non empty list of strings, or one-element struct mapping to a string is needed to obtain a value - got a {} at {}", v.kind().as_str(), segment)
                                     })
-                                })});
+                                })
+                            });
 
                         // no flatten in stable yet :/
                         match r {
                             // must own the string, as it references the property vec
-                            Ok(Some(Ok(s))) => Some((Cow::from(s.to_string()), ops)),
+                            Ok(Some(Ok(v))) => Some((
+                                v.into_iter().map(|s| Cow::from(s.to_string())).collect(),
+                                ops,
+                            )),
                             Err(e) => {
                                 debug!("failed to fetch metadata: {}", e);
                                 None
@@ -125,7 +148,7 @@ impl Source {
                             }
                         }
                     } else {
-                        debug!("parsed global metadata as FAIL!");
+                        debug!("parsing global metadata failed");
                         None
                     }
                 } else {
@@ -135,8 +158,7 @@ impl Source {
             }
         };
 
-        res.and_then(|(v, ops)| {
-            let values = vec![v];
+        res.and_then(|(values, ops)| {
             if let Some(ops) = ops {
                 let ops = ops.iter().collect::<Vec<_>>();
                 super::process_operations(values, ops.as_slice()).ok()
