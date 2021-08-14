@@ -1,3 +1,37 @@
+use serde::{Deserialize, Serialize};
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+pub enum LogLevel {
+    Trace = 0,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Critical,
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
+    }
+}
+
+impl From<LogLevel> for proxy_wasm::types::LogLevel {
+    fn from(level: LogLevel) -> Self {
+        use LogLevel::*;
+
+        match level {
+            Critical => Self::Critical,
+            Warn => Self::Warn,
+            Info => Self::Info,
+            Error => Self::Error,
+            Debug => Self::Debug,
+            Trace => Self::Trace,
+        }
+    }
+}
+
 pub trait IdentLogger {
     fn ident(&self) -> &str;
 }
@@ -12,52 +46,46 @@ macro_rules! log {
 #[macro_export(local_inner_macros)]
 macro_rules! trace {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Trace, $($arg)+)
+        log!($ident, crate::log::LogLevel::Trace, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! debug {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Debug, $($arg)+)
+        log!($ident, crate::log::LogLevel::Debug, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! info {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Info, $($arg)+)
+        log!($ident, crate::log::LogLevel::Info, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! warn {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Warn, $($arg)+)
+        log!($ident, crate::log::LogLevel::Warn, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! error {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Error, $($arg)+)
+        log!($ident, crate::log::LogLevel::Error, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! critical {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, proxy_wasm::types::LogLevel::Critical, $($arg)+)
+        log!($ident, crate::log::LogLevel::Critical, $($arg)+)
     )
 }
 
-pub(crate) fn with_ident(
-    ctx: &dyn IdentLogger,
-    args: core::fmt::Arguments,
-    level: proxy_wasm::types::LogLevel,
-) {
-    use proxy_wasm::types::LogLevel;
-
+pub fn with_ident(ctx: &dyn IdentLogger, args: core::fmt::Arguments, level: LogLevel) {
     let ident = ctx.ident();
 
     // This is a best-effort padding to help align log lines.
@@ -80,7 +108,7 @@ pub(crate) fn with_ident(
     } + ident.len();
 
     proxy_wasm::hostcalls::log(
-        level,
+        level.into(),
         &format!("{:>padding$}: {}", ident, args, padding = padding),
     )
     .unwrap();
