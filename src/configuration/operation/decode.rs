@@ -13,23 +13,15 @@ pub enum DecodeError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Decode {
-    PlainText,
     #[serde(rename = "base64_standard")]
     Base64,
     #[serde(rename = "base64_urlsafe")]
     Base64UrlSafe,
 }
 
-impl Default for Decode {
-    fn default() -> Self {
-        Self::PlainText
-    }
-}
-
 impl Decode {
     pub fn decode<'a>(&self, input: Cow<'a, str>) -> Result<Cow<'a, str>, DecodeError> {
         let res = match self {
-            Self::PlainText => input,
             Self::Base64 => Cow::from(String::from_utf8(base64::decode_config(
                 input.as_ref(),
                 base64::STANDARD,

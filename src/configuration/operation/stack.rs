@@ -21,8 +21,6 @@ pub enum StackError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stack {
-    #[serde(rename = "nop")]
-    NoOp,
     Length {
         min: usize,
         max: usize,
@@ -60,12 +58,6 @@ pub enum Stack {
     },
 }
 
-impl Default for Stack {
-    fn default() -> Self {
-        Self::NoOp
-    }
-}
-
 impl Stack {
     pub fn process<'a>(
         &self,
@@ -76,7 +68,6 @@ impl Stack {
         }
 
         let res = match self {
-            Self::NoOp => input,
             Self::Length { min, max } => {
                 if input.len() < *min {
                     return Err(StackError::RequirementNotSatisfied);
