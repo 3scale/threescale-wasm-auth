@@ -25,9 +25,7 @@ pub enum Stack {
         min: usize,
         max: usize,
     },
-    Concat {
-        separator: String,
-    },
+    Join(String),
     Reverse,
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -78,7 +76,7 @@ impl Stack {
 
                 input
             }
-            Self::Concat { separator } => {
+            Self::Join(separator) => {
                 let joined = input.join(separator.as_str());
                 vec![joined.into()]
             }
