@@ -62,12 +62,7 @@ pub fn process_operations<'a>(
                 v
             }
             Operation::StringOp(string_op) => string_op.process(v)?,
-            Operation::Decode(decoding) => {
-                let value = v.pop().unwrap();
-                let result = decoding.decode(value)?;
-                v.push(result);
-                v
-            }
+            Operation::Decode(decoding) => decoding.process(v)?,
             Operation::Format(format) => format.process(v)?,
         };
         if v.is_empty() {

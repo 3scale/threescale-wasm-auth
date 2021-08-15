@@ -2,8 +2,11 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DecodeError {
+    #[error("input has no values")]
+    NoValuesError,
     #[error("failed to decode base64")]
     Base64Error(#[from] base64::DecodeError),
     #[error("invalid utf8 string")]
@@ -20,18 +23,22 @@ pub enum Decode {
 }
 
 impl Decode {
-    pub fn decode<'a>(&self, input: Cow<'a, str>) -> Result<Cow<'a, str>, DecodeError> {
-        let res = match self {
-            Self::Base64 => Cow::from(String::from_utf8(base64::decode_config(
-                input.as_ref(),
-                base64::STANDARD,
-            )?)?),
-            Self::Base64UrlSafe => Cow::from(String::from_utf8(base64::decode_config(
-                input.as_ref(),
-                base64::URL_SAFE,
-            )?)?),
+    pub fn process<'a>(
+        &self,
+        mut stack: Vec<Cow<'a, str>>,
+    ) -> Result<Vec<Cow<'a, str>>, DecodeError> {
+        let input = stack.pop().ok_or(DecodeError::NoValuesError)?;
+
+        let s = match self {
+            Self::Base64 => {
+                String::from_utf8(base64::decode_config(input.as_ref(), base64::STANDARD)?)?
+            }
+            Self::Base64UrlSafe => {
+                String::from_utf8(base64::decode_config(input.as_ref(), base64::URL_SAFE)?)?
+            }
         };
 
-        Ok(res)
+        stack.push(s.into());
+        Ok(stack)
     }
 }
