@@ -2,13 +2,15 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+use crate::util::glob::GlobPatternSet;
+
 #[derive(Debug, thiserror::Error)]
 pub enum StringOpError {
     #[error("requirement not satisfied")]
     RequirementNotSatisfied,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StringOp {
     Reverse,

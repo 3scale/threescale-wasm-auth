@@ -13,7 +13,7 @@ pub enum FormatError {
     NoStringFound,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     #[serde(rename = "json")]

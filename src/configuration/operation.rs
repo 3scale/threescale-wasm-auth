@@ -30,7 +30,7 @@ pub enum OperationError {
     NoOutputValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged, rename_all = "snake_case")]
 pub enum Operation {
     Stack(Stack),
