@@ -61,12 +61,7 @@ pub fn process_operations<'a>(
                 v.extend(values.into_iter());
                 v
             }
-            Operation::StringOp(string_op) => {
-                let value = v.pop().unwrap();
-                let values = string_op.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
+            Operation::StringOp(string_op) => string_op.process(v)?,
             Operation::Decode(decoding) => {
                 let value = v.pop().unwrap();
                 let result = decoding.decode(value)?;
