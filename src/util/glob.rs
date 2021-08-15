@@ -22,11 +22,21 @@ pub enum Error {
 #[serde(try_from = "String", into = "String")]
 pub struct GlobPattern(Regex);
 
+impl<'a> TryFrom<&'a str> for GlobPattern {
+    type Error = Error;
+
+    #[inline]
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
+        Self::new(s)
+    }
+}
+
 impl TryFrom<String> for GlobPattern {
     type Error = Error;
 
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        Self::new(s.as_str())
+    #[inline]
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }
 
@@ -129,6 +139,14 @@ impl TryFrom<Vec<String>> for GlobPatternSet {
 
     fn try_from(v: Vec<String>) -> Result<Self, Self::Error> {
         Self::new(v.iter().map(|pat| GlobPattern::glob_pattern(pat.as_str())))
+    }
+}
+
+impl<'a> TryFrom<&'a str> for GlobPatternSet {
+    type Error = Error;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        Self::new(core::iter::once(GlobPattern::glob_pattern(value)))
     }
 }
 
