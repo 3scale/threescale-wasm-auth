@@ -60,6 +60,7 @@ pub enum Stack {
     },
     Indexes(#[serde(default)] Vec<isize>),
     FlatMap(Vec<super::Operation>),
+    Select(Vec<super::Operation>),
     Cloned {
         #[serde(default)]
         result: CloneMode,
@@ -178,6 +179,14 @@ impl Stack {
                 };
                 r.into_iter().flatten().collect()
             }
+            Self::Select(ops) => input
+                .into_iter()
+                .filter_map(|e| {
+                    let ops = ops.iter().collect::<Vec<_>>();
+                    super::process_operations(vec![e], ops.as_slice()).ok()
+                })
+                .flatten()
+                .collect::<Vec<_>>(),
             Self::Cloned { result, ops } => {
                 let new_stack = input.clone();
                 let ops = ops.iter().collect::<Vec<_>>();
