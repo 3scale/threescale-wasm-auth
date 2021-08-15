@@ -68,12 +68,7 @@ pub fn process_operations<'a>(
                 v.push(result);
                 v
             }
-            Operation::Format(format) => {
-                let value = v.pop().unwrap();
-                let values = format.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
+            Operation::Format(format) => format.process(v)?,
         };
         if v.is_empty() {
             return Err(super::OperationError::NoOutputValue);
