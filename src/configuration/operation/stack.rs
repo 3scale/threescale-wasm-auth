@@ -20,6 +20,20 @@ pub enum StackError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CloneMode {
+    #[serde(rename = "prepend")]
+    PrependResult,
+    #[serde(rename = "append")]
+    AppendResult,
+}
+
+impl Default for CloneMode {
+    fn default() -> Self {
+        Self::AppendResult
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stack {
     Length {
@@ -46,6 +60,12 @@ pub enum Stack {
     },
     Indexes(#[serde(default)] Vec<isize>),
     FlatMap(Vec<super::Operation>),
+    Select(Vec<super::Operation>),
+    Cloned {
+        #[serde(default)]
+        result: CloneMode,
+        ops: Vec<super::Operation>,
+    },
     Values {
         #[serde(default)]
         level: LogLevel,
@@ -158,6 +178,31 @@ impl Stack {
                     Err(e) => return Err(StackError::InnerOperationError(Box::new(e))),
                 };
                 r.into_iter().flatten().collect()
+            }
+            Self::Select(ops) => input
+                .into_iter()
+                .filter_map(|e| {
+                    let ops = ops.iter().collect::<Vec<_>>();
+                    super::process_operations(vec![e], ops.as_slice()).ok()
+                })
+                .flatten()
+                .collect::<Vec<_>>(),
+            Self::Cloned { result, ops } => {
+                let new_stack = input.clone();
+                let ops = ops.iter().collect::<Vec<_>>();
+                match super::process_operations(new_stack, ops.as_slice()) {
+                    Ok(mut v) => match result {
+                        CloneMode::AppendResult => {
+                            input.extend(v.into_iter());
+                            input
+                        }
+                        CloneMode::PrependResult => {
+                            v.extend(input.into_iter());
+                            v
+                        }
+                    },
+                    Err(e) => return Err(StackError::InnerOperationError(Box::new(e))),
+                }
             }
             Self::Values { level, id } => {
                 crate::log!(
