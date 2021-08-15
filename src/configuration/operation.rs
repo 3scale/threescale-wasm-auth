@@ -30,15 +30,15 @@ pub enum OperationError {
     NoOutputValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Operation {
-    Stack(Stack),
-    Decode(Decode),
-    Format(Format),
     #[serde(rename = "string")]
     StringOp(StringOp),
     Control(Control),
+    Decode(Decode),
+    Format(Format),
+    Stack(Stack),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

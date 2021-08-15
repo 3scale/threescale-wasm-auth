@@ -2,13 +2,15 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+use crate::util::glob::{GlobPattern, GlobPatternSet};
+
 #[derive(Debug, thiserror::Error)]
 pub enum StringOpError {
     #[error("requirement not satisfied")]
     RequirementNotSatisfied,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StringOp {
     Reverse,
@@ -24,11 +26,11 @@ pub enum StringOp {
         #[serde(skip_serializing_if = "Option::is_none")]
         max: Option<usize>,
     },
-    Contents {
-        prefix: Option<String>,
-        suffix: Option<String>,
-        contains: Option<String>,
-    },
+    Prefix(String),
+    Suffix(String),
+    Contains(String),
+    GlobSet(GlobPatternSet),
+    Glob(GlobPattern),
 }
 
 mod defaults {
@@ -65,25 +67,37 @@ impl StringOp {
 
                 vec![out.into()]
             }
-            Self::Contents {
-                prefix,
-                suffix,
-                contains,
-            } => {
-                if let Some(prefix) = prefix {
-                    if !input.starts_with(prefix) {
-                        return Err(StringOpError::RequirementNotSatisfied);
-                    }
+            Self::Prefix(prefix) => {
+                if !input.starts_with(prefix) {
+                    return Err(StringOpError::RequirementNotSatisfied);
                 }
-                if let Some(suffix) = suffix {
-                    if !input.ends_with(suffix) {
-                        return Err(StringOpError::RequirementNotSatisfied);
-                    }
+
+                vec![input]
+            }
+            Self::Suffix(suffix) => {
+                if !input.ends_with(suffix) {
+                    return Err(StringOpError::RequirementNotSatisfied);
                 }
-                if let Some(substr) = contains {
-                    if !input.contains(substr) {
-                        return Err(StringOpError::RequirementNotSatisfied);
-                    }
+
+                vec![input]
+            }
+            Self::Contains(contains) => {
+                if !input.contains(contains) {
+                    return Err(StringOpError::RequirementNotSatisfied);
+                }
+
+                vec![input]
+            }
+            Self::Glob(pattern) => {
+                if !pattern.is_match(input.as_ref()) {
+                    return Err(StringOpError::RequirementNotSatisfied);
+                }
+
+                vec![input]
+            }
+            Self::GlobSet(pattern_set) => {
+                if !pattern_set.is_match(input.as_ref()) {
+                    return Err(StringOpError::RequirementNotSatisfied);
                 }
 
                 vec![input]
