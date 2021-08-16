@@ -168,7 +168,6 @@ impl Stack {
             }
             Self::FlatMap(ops) => {
                 let r = match stack.into_iter().try_fold(vec![], |mut acc, e| {
-                    let ops = ops.iter().collect::<Vec<_>>();
                     super::process_operations(vec![e], ops.as_slice()).map(|v| {
                         acc.push(v);
                         acc
@@ -181,15 +180,11 @@ impl Stack {
             }
             Self::Select(ops) => stack
                 .into_iter()
-                .filter_map(|e| {
-                    let ops = ops.iter().collect::<Vec<_>>();
-                    super::process_operations(vec![e], ops.as_slice()).ok()
-                })
+                .filter_map(|e| super::process_operations(vec![e], ops.as_slice()).ok())
                 .flatten()
                 .collect::<Vec<_>>(),
             Self::Cloned { result, ops } => {
                 let new_stack = stack.clone();
-                let ops = ops.iter().collect::<Vec<_>>();
                 match super::process_operations(new_stack, ops.as_slice()) {
                     Ok(mut v) => match result {
                         CloneMode::AppendResult => {
