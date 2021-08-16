@@ -55,30 +55,10 @@ pub fn process_operations<'a>(
     for op in ops {
         v = match op {
             Operation::Stack(stack) => stack.process(v)?,
-            Operation::Control(control) => {
-                let value = v.pop().unwrap();
-                let values = control.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
-            Operation::StringOp(string_op) => {
-                let value = v.pop().unwrap();
-                let values = string_op.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
-            Operation::Decode(decoding) => {
-                let value = v.pop().unwrap();
-                let result = decoding.decode(value)?;
-                v.push(result);
-                v
-            }
-            Operation::Format(format) => {
-                let value = v.pop().unwrap();
-                let values = format.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
+            Operation::Control(control) => control.process(v)?,
+            Operation::StringOp(string_op) => string_op.process(v)?,
+            Operation::Decode(decoding) => decoding.process(v)?,
+            Operation::Format(format) => format.process(v)?,
         };
         if v.is_empty() {
             return Err(super::OperationError::NoOutputValue);

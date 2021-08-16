@@ -6,6 +6,8 @@ use crate::util::glob::{GlobPattern, GlobPatternSet};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StringOpError {
+    #[error("input has no values")]
+    NoValuesError,
     #[error("requirement not satisfied")]
     RequirementNotSatisfied,
 }
@@ -40,70 +42,76 @@ mod defaults {
 }
 
 impl StringOp {
-    pub fn process<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, StringOpError> {
-        let res = match self {
-            Self::Reverse => vec![input.chars().into_iter().rev().collect::<String>().into()],
+    pub fn process<'a>(
+        &self,
+        mut stack: Vec<Cow<'a, str>>,
+    ) -> Result<Vec<Cow<'a, str>>, StringOpError> {
+        let input = stack.pop().ok_or(StringOpError::NoValuesError)?;
+
+        match self {
+            Self::Reverse => {
+                let value = input.chars().into_iter().rev().collect::<Cow<str>>();
+                stack.push(value);
+            }
             Self::Split { separator, max } => {
                 let max = max.unwrap_or(0);
                 if max > 0 {
-                    input
-                        .splitn(max, separator)
-                        .map(|s| Cow::from(s.to_string()))
-                        .collect()
+                    stack.extend(
+                        input
+                            .splitn(max, separator)
+                            .map(|s| Cow::from(s.to_string())),
+                    )
                 } else {
-                    input
-                        .split(separator)
-                        .map(|s| Cow::from(s.to_string()))
-                        .collect()
+                    stack.extend(input.split(separator).map(|s| Cow::from(s.to_string())))
                 }
             }
             Self::Replace { pattern, with, max } => {
                 let max = max.unwrap_or(0);
-                let out = if max > 0 {
+                let replaced = if max > 0 {
                     input.replacen(pattern, with, max)
                 } else {
                     input.replace(pattern, with)
                 };
 
-                vec![out.into()]
+                stack.push(replaced.into());
             }
             Self::Prefix(prefix) => {
                 if !input.starts_with(prefix) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
-                vec![input]
+                stack.push(input);
             }
             Self::Suffix(suffix) => {
                 if !input.ends_with(suffix) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
-                vec![input]
+                stack.push(input);
             }
             Self::Contains(contains) => {
                 if !input.contains(contains) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
-                vec![input]
+                stack.push(input);
             }
             Self::Glob(pattern) => {
                 if !pattern.is_match(input.as_ref()) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
-                vec![input]
+                stack.push(input);
             }
             Self::GlobSet(pattern_set) => {
                 if !pattern_set.is_match(input.as_ref()) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
-                vec![input]
+                stack.push(input);
             }
         };
 
-        Ok(res)
+        Ok(stack)
     }
 }

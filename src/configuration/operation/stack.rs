@@ -77,37 +77,37 @@ pub enum Stack {
 impl Stack {
     pub fn process<'a>(
         &self,
-        mut input: Vec<Cow<'a, str>>,
+        mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, StackError> {
-        if input.is_empty() {
+        if stack.is_empty() {
             return Err(StackError::NoValuesError);
         }
 
         let res = match self {
             Self::Length { min, max } => {
-                if input.len() < *min {
+                if stack.len() < *min {
                     return Err(StackError::RequirementNotSatisfied);
                 }
-                if input.len() > *max {
+                if stack.len() > *max {
                     return Err(StackError::RequirementNotSatisfied);
                 }
 
-                input
+                stack
             }
             Self::Join(separator) => {
-                let joined = input.join(separator.as_str());
+                let joined = stack.join(separator.as_str());
                 vec![joined.into()]
             }
             Self::Reverse => {
-                input.reverse();
-                input
+                stack.reverse();
+                stack
             }
             Self::Take { head, tail } => {
                 let (mut head_vec, mut tail_vec) = if let Some(head) = head {
-                    let tail = input.split_off(core::cmp::min(*head, input.len()));
-                    (input, tail)
+                    let tail = stack.split_off(core::cmp::min(*head, stack.len()));
+                    (stack, tail)
                 } else {
-                    (vec![], input)
+                    (vec![], stack)
                 };
 
                 let tail = if let Some(tail) = tail {
@@ -121,10 +121,10 @@ impl Stack {
             }
             Self::Drop { head, tail } => {
                 let mut tail_vec = if let Some(head) = head {
-                    let idx = core::cmp::min(*head, input.len());
-                    input.split_off(idx)
+                    let idx = core::cmp::min(*head, stack.len());
+                    stack.split_off(idx)
                 } else {
-                    input
+                    stack
                 };
 
                 if let Some(tail) = tail {
@@ -138,36 +138,36 @@ impl Stack {
                 use self::indexing::{CollectionLength, Index};
                 use core::convert::TryFrom;
 
-                let input_len = CollectionLength::try_from(input.len())?;
+                let stack_len = CollectionLength::try_from(stack.len())?;
                 let from = Index::from(*from);
                 let to = Index::from(*to);
 
                 if from != to {
-                    input.swap(input_len.index_into(from)?, input_len.index_into(to)?);
+                    stack.swap(stack_len.index_into(from)?, stack_len.index_into(to)?);
                 }
 
-                input
+                stack
             }
             Self::Indexes(indexes) => {
                 if indexes.is_empty() {
                     // take all values
-                    input
+                    stack
                 } else {
                     use self::indexing::{CollectionLength, Index};
                     use core::convert::TryFrom;
 
-                    let input_len = CollectionLength::try_from(input.len())?;
+                    let stack_len = CollectionLength::try_from(stack.len())?;
 
                     indexes.iter().try_fold(vec![], |mut acc, &idx| {
-                        input_len.index_into(Index::from(idx)).map(|computed_idx| {
-                            acc.push(Cow::from(input[computed_idx].to_string()));
+                        stack_len.index_into(Index::from(idx)).map(|computed_idx| {
+                            acc.push(Cow::from(stack[computed_idx].to_string()));
                             acc
                         })
                     })?
                 }
             }
             Self::FlatMap(ops) => {
-                let r = match input.into_iter().try_fold(vec![], |mut acc, e| {
+                let r = match stack.into_iter().try_fold(vec![], |mut acc, e| {
                     let ops = ops.iter().collect::<Vec<_>>();
                     super::process_operations(vec![e], ops.as_slice()).map(|v| {
                         acc.push(v);
@@ -179,7 +179,7 @@ impl Stack {
                 };
                 r.into_iter().flatten().collect()
             }
-            Self::Select(ops) => input
+            Self::Select(ops) => stack
                 .into_iter()
                 .filter_map(|e| {
                     let ops = ops.iter().collect::<Vec<_>>();
@@ -188,16 +188,16 @@ impl Stack {
                 .flatten()
                 .collect::<Vec<_>>(),
             Self::Cloned { result, ops } => {
-                let new_stack = input.clone();
+                let new_stack = stack.clone();
                 let ops = ops.iter().collect::<Vec<_>>();
                 match super::process_operations(new_stack, ops.as_slice()) {
                     Ok(mut v) => match result {
                         CloneMode::AppendResult => {
-                            input.extend(v.into_iter());
-                            input
+                            stack.extend(v.into_iter());
+                            stack
                         }
                         CloneMode::PrependResult => {
-                            v.extend(input.into_iter());
+                            v.extend(stack.into_iter());
                             v
                         }
                     },
@@ -210,13 +210,13 @@ impl Stack {
                     *level,
                     "values at {}: {}",
                     id.as_ref().map(|id| id.as_str()).unwrap_or("()"),
-                    input
+                    stack
                         .iter()
                         .map(|s| format!(r#""{}""#, s))
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
-                input
+                stack
             }
         };
 
