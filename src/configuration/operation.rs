@@ -41,6 +41,12 @@ pub enum Operation {
     Stack(Stack),
 }
 
+impl AsRef<Operation> for Operation {
+    fn as_ref(&self) -> &Operation {
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Matcher {
     OneOf(Vec<String>), // produces one result
@@ -48,12 +54,12 @@ pub enum Matcher {
     All(Vec<String>),   // produces vec.len() results
 }
 
-pub fn process_operations<'a>(
+pub fn process_operations<'a, O: AsRef<Operation>>(
     mut v: Vec<Cow<'a, str>>,
-    ops: &[&Operation],
+    ops: &[O],
 ) -> Result<Vec<Cow<'a, str>>, super::OperationError> {
     for op in ops {
-        v = match op {
+        v = match op.as_ref() {
             Operation::Stack(stack) => stack.process(v)?,
             Operation::Control(control) => control.process(v)?,
             Operation::StringOp(string_op) => string_op.process(v)?,

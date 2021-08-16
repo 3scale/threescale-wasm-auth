@@ -160,7 +160,6 @@ impl Source {
 
         res.and_then(|(values, ops)| {
             if let Some(ops) = ops {
-                let ops = ops.iter().collect::<Vec<_>>();
                 super::process_operations(values, ops.as_slice()).ok()
             } else {
                 Some(values)
