@@ -6,6 +6,8 @@ use crate::log::LogLevel;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ControlError {
+    #[error("input has no values")]
+    NoValuesError,
     #[error("requirement not satisfied")]
     RequirementNotSatisfied,
     #[error("inner operation error")]
@@ -31,50 +33,82 @@ pub enum Control {
 }
 
 impl Control {
-    pub fn process<'a>(&self, input: Cow<'a, str>) -> Result<Vec<Cow<'a, str>>, ControlError> {
+    pub fn process<'a>(
+        &self,
+        mut stack: Vec<Cow<'a, str>>,
+    ) -> Result<Vec<Cow<'a, str>>, ControlError> {
+        let input = stack.pop().ok_or(ControlError::NoValuesError)?;
+
         let res = match self {
-            Self::True => vec![input],
+            Self::True => {
+                stack.push(input);
+                stack
+            }
             Self::False => return Err(ControlError::RequirementNotSatisfied),
-            Self::Any(ops) => ops
-                .iter()
-                .find_map(|op| super::process_operations(vec![input.clone()], &[op]).ok())
-                .ok_or(ControlError::RequirementNotSatisfied)?,
-            Self::OneOf(ops) => ops
-                .iter()
-                .try_fold(None, |acc, op| {
-                    if let Ok(result) = super::process_operations(vec![input.clone()], &[op]) {
-                        if acc.is_some() {
-                            None
-                        } else {
-                            Some(Some(result))
-                        }
-                    } else {
-                        Some(acc)
-                    }
-                })
-                .flatten()
-                .ok_or(ControlError::RequirementNotSatisfied)?,
+            Self::Any(ops) => {
+                stack.extend(
+                    ops.iter()
+                        .find_map(|op| super::process_operations(vec![input.clone()], &[op]).ok())
+                        .ok_or(ControlError::RequirementNotSatisfied)?
+                        .into_iter(),
+                );
+                stack
+            }
+            Self::OneOf(ops) => {
+                stack.extend(
+                    ops.iter()
+                        .try_fold(None, |acc, op| {
+                            if let Ok(result) =
+                                super::process_operations(vec![input.clone()], &[op])
+                            {
+                                if acc.is_some() {
+                                    None
+                                } else {
+                                    Some(Some(result))
+                                }
+                            } else {
+                                Some(acc)
+                            }
+                        })
+                        .flatten()
+                        .ok_or(ControlError::RequirementNotSatisfied)?,
+                );
+                stack
+            }
             Self::All(ops) => ops
                 .iter()
                 .all(|op| super::process_operations(vec![input.clone()], &[op]).is_ok())
-                .then(|| vec![input])
+                .then(|| {
+                    stack.push(input);
+                    stack
+                })
                 .ok_or(ControlError::RequirementNotSatisfied)?,
             Self::None(ops) => ops
                 .iter()
                 .all(|op| super::process_operations(vec![input.clone()], &[op]).is_err())
-                .then(|| vec![input])
+                .then(|| {
+                    stack.push(input);
+                    stack
+                })
                 .ok_or(ControlError::RequirementNotSatisfied)?,
             Self::Assert(op) => super::process_operations(vec![input.clone()], &[op])
                 .is_ok()
-                .then(|| vec![input])
+                .then(|| {
+                    stack.push(input);
+                    stack
+                })
                 .ok_or(ControlError::RequirementNotSatisfied)?,
             Self::Refute(op) => super::process_operations(vec![input.clone()], &[op])
                 .is_err()
-                .then(|| vec![input])
+                .then(|| {
+                    stack.push(input);
+                    stack
+                })
                 .ok_or(ControlError::RequirementNotSatisfied)?,
             Self::Log { level, msg } => {
                 crate::log!(&"[3scale-auth/config]", *level, "{}", msg);
-                vec![input]
+                stack.push(input);
+                stack
             }
         };
 

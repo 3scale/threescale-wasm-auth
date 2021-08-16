@@ -55,12 +55,7 @@ pub fn process_operations<'a>(
     for op in ops {
         v = match op {
             Operation::Stack(stack) => stack.process(v)?,
-            Operation::Control(control) => {
-                let value = v.pop().unwrap();
-                let values = control.process(value)?;
-                v.extend(values.into_iter());
-                v
-            }
+            Operation::Control(control) => control.process(v)?,
             Operation::StringOp(string_op) => string_op.process(v)?,
             Operation::Decode(decoding) => decoding.process(v)?,
             Operation::Format(format) => format.process(v)?,
