@@ -41,6 +41,7 @@ pub enum Stack {
         max: usize,
     },
     Join(String),
+    #[serde(rename = "stack_rev")]
     Reverse,
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]
