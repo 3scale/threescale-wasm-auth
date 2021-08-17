@@ -36,9 +36,12 @@ impl Default for CloneMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stack {
+    #[serde(rename = "stack_len")]
     Length {
-        min: usize,
-        max: usize,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        min: Option<usize>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max: Option<usize>,
     },
     Join(String),
     #[serde(rename = "stack_rev")]
@@ -86,11 +89,15 @@ impl Stack {
 
         let res = match self {
             Self::Length { min, max } => {
-                if stack.len() < *min {
-                    return Err(StackError::RequirementNotSatisfied);
+                if let Some(min) = min {
+                    if stack.len() < *min {
+                        return Err(StackError::RequirementNotSatisfied);
+                    }
                 }
-                if stack.len() > *max {
-                    return Err(StackError::RequirementNotSatisfied);
+                if let Some(max) = max {
+                    if stack.len() > *max {
+                        return Err(StackError::RequirementNotSatisfied);
+                    }
                 }
 
                 stack
