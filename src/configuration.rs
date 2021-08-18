@@ -140,9 +140,9 @@ mod test {
                     Some(vec![Source::QueryString {
                         keys: vec!["api_key".into()],
                         ops: Some(vec![
-                            Operation::Control(Control::Assert(
-                                Operation::Control(Control::True).into(),
-                            )),
+                            Operation::Control(Control::Assert(vec![Operation::Control(
+                                Control::True,
+                            )])),
                             Operation::StringOp(StringOp::Split {
                                 separator: ":".into(),
                                 max: Some(2),
