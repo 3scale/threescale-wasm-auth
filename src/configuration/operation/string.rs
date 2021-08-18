@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
-use crate::util::glob::{GlobPattern, GlobPatternSet};
+use crate::util::glob::GlobPatternSet;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StringOpError {
@@ -71,9 +71,9 @@ pub enum StringOp {
     },
     Prefix(String),
     Suffix(String),
-    Contains(String),
-    GlobSet(GlobPatternSet),
-    Glob(GlobPattern),
+    #[serde(rename = "substr")]
+    SubString(String),
+    Glob(GlobPatternSet),
 }
 
 mod defaults {
@@ -154,21 +154,14 @@ impl StringOp {
 
                 stack.push(input);
             }
-            Self::Contains(contains) => {
+            Self::SubString(contains) => {
                 if !input.contains(contains) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
 
                 stack.push(input);
             }
-            Self::Glob(pattern) => {
-                if !pattern.is_match(input.as_ref()) {
-                    return Err(StringOpError::RequirementNotSatisfied);
-                }
-
-                stack.push(input);
-            }
-            Self::GlobSet(pattern_set) => {
+            Self::Glob(pattern_set) => {
                 if !pattern_set.is_match(input.as_ref()) {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
