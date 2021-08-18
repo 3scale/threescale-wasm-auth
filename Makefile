@@ -26,7 +26,7 @@ push-extension: ## Push WASM filter docker image
 
 .PHONY: release
 release: export BUILD?=release
-release: build ## Build release WASM filter
+release: ## Build release WASM filter
 	$(MAKE) build
 
 .PHONY: build
