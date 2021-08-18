@@ -22,7 +22,6 @@ pub enum StackError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stack {
-    #[serde(rename = "stack_len")]
     Length {
         #[serde(skip_serializing_if = "Option::is_none")]
         min: Option<usize>,
@@ -30,7 +29,6 @@ pub enum Stack {
         max: Option<usize>,
     },
     Join(String),
-    #[serde(rename = "stack_rev")]
     Reverse,
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]

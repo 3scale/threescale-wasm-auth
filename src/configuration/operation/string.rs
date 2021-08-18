@@ -39,7 +39,7 @@ impl LengthMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StringOp {
-    #[serde(rename = "len")]
+    #[serde(rename = "strlen")]
     Length {
         #[serde(skip_serializing_if = "Option::is_none")]
         min: Option<usize>,
@@ -48,6 +48,7 @@ pub enum StringOp {
         #[serde(default)]
         mode: LengthMode,
     },
+    #[serde(rename = "strrev")]
     Reverse,
     Split {
         #[serde(default = "defaults::separator")]
