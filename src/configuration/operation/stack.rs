@@ -30,6 +30,7 @@ pub enum Stack {
     },
     Join(String),
     Reverse,
+    Contains(String),
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]
         head: Option<usize>,
@@ -87,6 +88,12 @@ impl Stack {
             }
             Self::Reverse => {
                 stack.reverse();
+                stack
+            }
+            Self::Contains(value) => {
+                if !stack.contains(&value.into()) {
+                    return Err(StackError::RequirementNotSatisfied);
+                }
                 stack
             }
             Self::Take { head, tail } => {
