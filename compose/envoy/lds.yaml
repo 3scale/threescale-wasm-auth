@@ -115,44 +115,26 @@ resources:
                                         ],
                                         "ops": [
                                           {
-                                            "control": {
-                                              "assert": {
-                                                "string": "reverse"
-                                              }
+                                            "assert": "reverse"
+                                          },
+                                          {
+                                            "values": {
+                                              "id": "prefix-check-before"
                                             }
                                           },
                                           {
-                                            "stack": {
-                                              "log": {
-                                                "id": "prefix-check-before"
+                                            "any": [
+                                              {
+                                                "prefix": "abc"
+                                              },
+                                              {
+                                                "prefix": "xyz"
                                               }
-                                            }
+                                            ]
                                           },
                                           {
-                                            "control": {
-                                              "any": [
-                                                {
-                                                  "string": {
-                                                    "contents": {
-                                                      "prefix": "abc"
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "string": {
-                                                    "contents": {
-                                                      "prefix": "xyz"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "stack": {
-                                              "log": {
-                                                "id": "prefix-check-after"
-                                              }
+                                            "values": {
+                                              "id": "prefix-check-after"
                                             }
                                           }
                                         ]
@@ -175,6 +157,13 @@ resources:
                                         "keys": [
                                           "azp",
                                           "aud"
+                                        ],
+                                        "ops": [
+                                          {
+                                            "take": {
+                                              "head": 1
+                                            }
+                                          }
                                         ]
                                       }
                                     },
@@ -184,18 +173,19 @@ resources:
                                           "x-jwt-payload"
                                         ],
                                         "ops": [
+                                          "base64_urlsafe",
                                           {
-                                            "decode": "base64_urlsafe"
+                                            "json": {
+                                              "path": [],
+                                              "keys": [
+                                                "azp",
+                                                "aud"
+                                              ]
+                                            }
                                           },
                                           {
-                                            "format": {
-                                              "json": {
-                                                "path": [],
-                                                "keys": [
-                                                  "azp",
-                                                  "aud"
-                                                ]
-                                              }
+                                            "take": {
+                                              "head": 1
                                             }
                                           }
                                         ]
@@ -208,24 +198,18 @@ resources:
                                         ],
                                         "ops": [
                                           {
-                                            "string": {
-                                              "split": {
-                                                "separator": " ",
-                                                "max": 2,
-                                                "indexes": [1]
-                                              }
+                                            "split": {
+                                              "separator": " ",
+                                              "max": 2,
+                                              "indexes": [1]
                                             }
                                           },
+                                          "base64_urlsafe",
                                           {
-                                            "decode": "base64_urlsafe"
-                                          },
-                                          {
-                                            "string": {
-                                              "split": {
-                                                "separator": ":",
-                                                "max": 2,
-                                                "indexes": [0, 1]
-                                              }
+                                            "split": {
+                                              "separator": ":",
+                                              "max": 2,
+                                              "indexes": [0, 1]
                                             }
                                           }
                                         ]
@@ -257,15 +241,15 @@ resources:
                                         ],
                                         "ops": [
                                           {
-                                            "string": {
-                                              "split": {
-                                                "separator": ":",
-                                                "max": 2,
-                                                "indexes": [
-                                                  0
-                                                ]
-                                              }
+                                            "split": {
+                                              "separator": ":",
+                                              "max": 2
                                             }
+                                          },
+                                          {
+                                            "indexes": [
+                                              0
+                                            ]
                                           }
                                         ]
                                       }
