@@ -19,20 +19,6 @@ pub enum StackError {
     InnerOperationError(#[from] Box<OperationError>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CloneMode {
-    #[serde(rename = "prepend")]
-    PrependResult,
-    #[serde(rename = "append")]
-    AppendResult,
-}
-
-impl Default for CloneMode {
-    fn default() -> Self {
-        Self::AppendResult
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stack {
@@ -65,11 +51,6 @@ pub enum Stack {
     Indexes(#[serde(default)] Vec<isize>),
     FlatMap(Vec<super::Operation>),
     Select(Vec<super::Operation>),
-    Cloned {
-        #[serde(default)]
-        result: CloneMode,
-        ops: Vec<super::Operation>,
-    },
     Values {
         #[serde(default)]
         level: LogLevel,
@@ -191,22 +172,6 @@ impl Stack {
                 .filter_map(|e| super::process_operations(vec![e], ops.as_slice()).ok())
                 .flatten()
                 .collect::<Vec<_>>(),
-            Self::Cloned { result, ops } => {
-                let new_stack = stack.clone();
-                match super::process_operations(new_stack, ops.as_slice()) {
-                    Ok(mut v) => match result {
-                        CloneMode::AppendResult => {
-                            stack.extend(v.into_iter());
-                            stack
-                        }
-                        CloneMode::PrependResult => {
-                            v.extend(stack.into_iter());
-                            v
-                        }
-                    },
-                    Err(e) => return Err(StackError::InnerOperationError(Box::new(e))),
-                }
-            }
             Self::Values { level, id } => {
                 crate::log!(
                     &"[3scale-auth/stack]",
