@@ -32,6 +32,13 @@ impl Default for StackExtendMode {
 pub enum Control {
     True,
     False,
+    Test {
+        #[serde(rename = "if")]
+        r#if: Box<super::Operation>,
+        then: Vec<super::Operation>,
+        #[serde(rename = "else", default)]
+        r#else: Vec<super::Operation>,
+    },
     Any(Vec<super::Operation>),
     OneOf(Vec<super::Operation>),
     All(Vec<super::Operation>),
@@ -80,6 +87,16 @@ impl Control {
                         .into_iter(),
                 );
                 stack
+            }
+            Self::Test { r#if, then, r#else } => {
+                let ops = if super::process_operations(stack.clone(), &[r#if]).is_ok() {
+                    then
+                } else {
+                    r#else
+                };
+
+                super::process_operations(stack, ops.as_slice())
+                    .map_err(|e| ControlError::InnerOperationError(e.into()))?
             }
             Self::OneOf(ops) => {
                 stack.extend(
