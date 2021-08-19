@@ -1,3 +1,4 @@
+use core::convert::TryFrom;
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
@@ -130,7 +131,6 @@ impl Stack {
             }
             Self::Swap { from, to } => {
                 use self::indexing::{CollectionLength, Index};
-                use core::convert::TryFrom;
 
                 let stack_len = CollectionLength::try_from(stack.len())?;
                 let from = Index::from(*from);
@@ -148,7 +148,6 @@ impl Stack {
                     stack
                 } else {
                     use self::indexing::{CollectionLength, Index};
-                    use core::convert::TryFrom;
 
                     let stack_len = CollectionLength::try_from(stack.len())?;
 
@@ -203,6 +202,7 @@ impl Stack {
 
 mod indexing {
     use super::StackError;
+    use core::convert::TryFrom;
 
     #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     pub struct Index(isize);
@@ -213,7 +213,7 @@ mod indexing {
         }
     }
 
-    impl core::convert::TryFrom<usize> for Index {
+    impl TryFrom<usize> for Index {
         type Error = StackError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
@@ -265,7 +265,7 @@ mod indexing {
         }
     }
 
-    impl core::convert::TryFrom<usize> for CollectionLength {
+    impl TryFrom<usize> for CollectionLength {
         type Error = StackError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
