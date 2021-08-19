@@ -1,3 +1,4 @@
+use core::convert::TryFrom;
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,10 @@ pub enum Stack {
     Join(String),
     Reverse,
     Contains(String),
+    Push(String),
+    Pop(#[serde(skip_serializing_if = "Option::is_none")] Option<usize>),
+    Dup(#[serde(skip_serializing_if = "Option::is_none")] Option<isize>),
+    Xchg(String),
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]
         head: Option<usize>,
@@ -96,6 +101,29 @@ impl Stack {
                 }
                 stack
             }
+            Self::Push(s) => {
+                stack.push(s.clone().into());
+                stack
+            }
+            Self::Pop(n) => {
+                let _ = stack.split_off(stack.len().saturating_sub(n.unwrap_or(1)));
+                stack
+            }
+            Self::Dup(idx) => {
+                use self::indexing::{CollectionLength, Index};
+
+                let idx = Index::from(idx.unwrap_or(-1));
+                let stack_len = CollectionLength::try_from(stack.len())?;
+                let idx = stack_len.index_into(idx)?;
+                let value = stack.get(idx).unwrap().clone();
+                stack.push(value);
+                stack
+            }
+            Self::Xchg(s) => {
+                let _ = stack.pop().ok_or(StackError::NoValuesError)?;
+                stack.push(s.clone().into());
+                stack
+            }
             Self::Take { head, tail } => {
                 let (mut head_vec, mut tail_vec) = if let Some(head) = head {
                     let tail = stack.split_off(core::cmp::min(*head, stack.len()));
@@ -130,7 +158,6 @@ impl Stack {
             }
             Self::Swap { from, to } => {
                 use self::indexing::{CollectionLength, Index};
-                use core::convert::TryFrom;
 
                 let stack_len = CollectionLength::try_from(stack.len())?;
                 let from = Index::from(*from);
@@ -148,7 +175,6 @@ impl Stack {
                     stack
                 } else {
                     use self::indexing::{CollectionLength, Index};
-                    use core::convert::TryFrom;
 
                     let stack_len = CollectionLength::try_from(stack.len())?;
 
@@ -203,6 +229,7 @@ impl Stack {
 
 mod indexing {
     use super::StackError;
+    use core::convert::TryFrom;
 
     #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     pub struct Index(isize);
@@ -213,7 +240,7 @@ mod indexing {
         }
     }
 
-    impl core::convert::TryFrom<usize> for Index {
+    impl TryFrom<usize> for Index {
         type Error = StackError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
@@ -265,7 +292,7 @@ mod indexing {
         }
     }
 
-    impl core::convert::TryFrom<usize> for CollectionLength {
+    impl TryFrom<usize> for CollectionLength {
         type Error = StackError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
