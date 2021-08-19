@@ -39,13 +39,13 @@ pub enum Control {
         #[serde(rename = "else", default)]
         r#else: Vec<super::Operation>,
     },
+    And(Vec<super::Operation>),
     Any(Vec<super::Operation>),
     OneOf(Vec<super::Operation>),
     All(Vec<super::Operation>),
     None(Vec<super::Operation>),
     Assert(Vec<super::Operation>),
     Refute(Vec<super::Operation>),
-    Group(Vec<super::Operation>),
     Cloned {
         #[serde(default)]
         result: StackExtendMode,
@@ -151,7 +151,7 @@ impl Control {
 
                 stack
             }
-            Self::Group(ops) => {
+            Self::And(ops) => {
                 stack.push(input);
                 super::process_operations(stack, ops.as_slice())
                     .map_err(|e| ControlError::InnerOperationError(e.into()))?
