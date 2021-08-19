@@ -58,7 +58,6 @@ pub enum Control {
         #[serde(skip_serializing_if = "Option::is_none")]
         max: Option<usize>,
     },
-    Pipe(Vec<super::Operation>),
     Log {
         #[serde(default)]
         level: LogLevel,
@@ -193,14 +192,6 @@ impl Control {
                     },
                     Err(e) => return Err(ControlError::InnerOperationError(e.into())),
                 }
-            }
-            Self::Pipe(ops) => {
-                stack.extend(
-                    super::process_operations(vec![input], ops.as_slice())
-                        .map_err(|_| ControlError::RequirementNotSatisfied)?
-                        .into_iter(),
-                );
-                stack
             }
             Self::Log { level, msg } => {
                 crate::log!(&"[3scale-auth/config]", *level, "{}", msg);
