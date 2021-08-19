@@ -153,7 +153,7 @@ impl Control {
                             v
                         }
                     },
-                    Err(e) => return Err(ControlError::InnerOperationError(Box::new(e))),
+                    Err(e) => return Err(ControlError::InnerOperationError(e.into())),
                 }
             }
             Self::Partial { result, ops, max } => {
@@ -174,7 +174,7 @@ impl Control {
                             v
                         }
                     },
-                    Err(e) => return Err(ControlError::InnerOperationError(Box::new(e))),
+                    Err(e) => return Err(ControlError::InnerOperationError(e.into())),
                 }
             }
             Self::Pipe(ops) => {
