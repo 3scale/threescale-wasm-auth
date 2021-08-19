@@ -32,6 +32,10 @@ pub enum Stack {
     Join(String),
     Reverse,
     Contains(String),
+    Push(String),
+    Pop(#[serde(skip_serializing_if = "Option::is_none")] Option<usize>),
+    Dup(#[serde(skip_serializing_if = "Option::is_none")] Option<isize>),
+    Xchg(String),
     Take {
         #[serde(skip_serializing_if = "Option::is_none")]
         head: Option<usize>,
@@ -95,6 +99,29 @@ impl Stack {
                 if !stack.contains(&value.into()) {
                     return Err(StackError::RequirementNotSatisfied);
                 }
+                stack
+            }
+            Self::Push(s) => {
+                stack.push(s.clone().into());
+                stack
+            }
+            Self::Pop(n) => {
+                let _ = stack.split_off(stack.len().saturating_sub(n.unwrap_or(1)));
+                stack
+            }
+            Self::Dup(idx) => {
+                use self::indexing::{CollectionLength, Index};
+
+                let idx = Index::from(idx.unwrap_or(-1));
+                let stack_len = CollectionLength::try_from(stack.len())?;
+                let idx = stack_len.index_into(idx)?;
+                let value = stack.get(idx).unwrap().clone();
+                stack.push(value);
+                stack
+            }
+            Self::Xchg(s) => {
+                let _ = stack.pop().ok_or(StackError::NoValuesError)?;
+                stack.push(s.clone().into());
                 stack
             }
             Self::Take { head, tail } => {
