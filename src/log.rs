@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LogLevel {
     Trace = 0,
     Debug,
