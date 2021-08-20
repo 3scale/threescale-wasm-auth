@@ -111,31 +111,80 @@ resources:
                                     {
                                       "header": {
                                         "keys": [
-                                          "x-app-id"
+                                          "authorization"
                                         ],
                                         "ops": [
                                           {
-                                            "assert": "reverse"
-                                          },
-                                          {
-                                            "values": {
-                                              "id": "prefix-check-before"
+                                            "split": {
+                                              "separator": " ",
+                                              "max": 2
                                             }
                                           },
                                           {
-                                            "any": [
-                                              {
-                                                "prefix": "abc"
-                                              },
-                                              {
-                                                "prefix": "xyz"
-                                              }
+                                            "length": {
+                                              "min": 2
+                                            }
+                                          },
+                                          "reverse",
+                                          {
+                                            "glob": [
+                                              "Basic"
                                             ]
                                           },
                                           {
-                                            "values": {
-                                              "id": "prefix-check-after"
+                                            "drop": {
+                                              "tail": 1
                                             }
+                                          },
+                                          "base64_urlsafe",
+                                          {
+                                            "split": {
+                                              "separator": ":",
+                                              "max": 2
+                                            }
+                                          },
+                                          {
+                                            "test": {
+                                              "if": {
+                                                "length": {
+                                                  "min": 2
+                                                }
+                                              },
+                                              "then": [
+                                                {
+                                                  "strlen": {
+                                                    "min": 1,
+                                                    "max": 63,
+                                                    "mode": "utf8"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "assert": [
+                                              {
+                                                "and": [
+                                                  "reverse",
+                                                  {
+                                                    "or": [
+                                                      {
+                                                        "strlen": {
+                                                          "min": 8,
+                                                          "mode": "utf8"
+                                                        }
+                                                      },
+                                                      {
+                                                        "glob": [
+                                                          "aladdin",
+                                                          "admin"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
                                           }
                                         ]
                                       }
