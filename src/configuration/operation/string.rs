@@ -93,14 +93,18 @@ impl StringOp {
             Self::Length { min, max, mode } => {
                 if let Some(min) = min {
                     if mode.for_str(&input) < *min {
+                        stack.push(input);
                         return Err(StringOpError::RequirementNotSatisfied);
                     }
                 }
                 if let Some(max) = max {
                     if mode.for_str(&input) > *max {
+                        stack.push(input);
                         return Err(StringOpError::RequirementNotSatisfied);
                     }
                 }
+
+                stack.push(input);
             }
             Self::Reverse => {
                 let value = input.chars().into_iter().rev().collect::<Cow<str>>();
@@ -141,32 +145,36 @@ impl StringOp {
                 stack.push(replaced.into());
             }
             Self::Prefix(prefix) => {
-                if !input.starts_with(prefix) {
+                let res = input.starts_with(prefix);
+                stack.push(input);
+
+                if !res {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
-
-                stack.push(input);
             }
             Self::Suffix(suffix) => {
-                if !input.ends_with(suffix) {
+                let res = input.ends_with(suffix);
+                stack.push(input);
+
+                if !res {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
-
-                stack.push(input);
             }
             Self::SubString(contains) => {
-                if !input.contains(contains) {
+                let res = input.contains(contains);
+                stack.push(input);
+
+                if !res {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
-
-                stack.push(input);
             }
             Self::Glob(pattern_set) => {
-                if !pattern_set.is_match(input.as_ref()) {
+                let res = pattern_set.is_match(input.as_ref());
+                stack.push(input);
+
+                if !res {
                     return Err(StringOpError::RequirementNotSatisfied);
                 }
-
-                stack.push(input);
             }
         };
 
