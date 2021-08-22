@@ -187,6 +187,7 @@ mod test {
                         name: "Hits".into(),
                         delta: 1,
                     }],
+                    last: Default::default(),
                 }],
             }]),
             passthrough_metadata: Some(true),
