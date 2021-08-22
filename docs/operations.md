@@ -214,6 +214,8 @@ The operations in this category help you build checks on other operations. Just 
 properties means these operations never have side effects: they discard any changes to the stack
 once they have been resolved.
 
+* `ok`: this operation takes no parameters and always succeeds.
+* `fail`: this operation takes no parameters and always fails.
 * `any`: this takes a list of operations as parameter and runs them all until one of them succeeds.
          The first successful operation marks this one as successful without further evaluation,
          that is, [`short-circuiting`](https://en.wikipedia.org/wiki/Short-circuit_evaluation).
@@ -239,8 +241,6 @@ The operations in this category help you modify the control flow on other operat
 allow for implementing arbitrary Turing-complete programs, but help in ensuring certain properties.
 Contrary to `check` operations, these have side effects.
 
-* `ok`: this operation takes no parameters and always succeeds.
-* `fail`: this operation takes no parameters and always fails.
 * `test`: this operation implements conditionals. It takes two mandatory parameters: `if`, which
           specifies an operation that acts as an assertion, that is, it will have no side effects,
           and `then`, which receives a list of operations. If the operation in `if` succeeds, the
