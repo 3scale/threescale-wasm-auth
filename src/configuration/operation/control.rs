@@ -30,8 +30,6 @@ impl Default for StackExtendMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Control {
-    True,
-    False,
     Test {
         #[serde(rename = "if")]
         r#if: Box<super::Operation>,
@@ -39,13 +37,9 @@ pub enum Control {
         #[serde(rename = "else", default)]
         r#else: Vec<super::Operation>,
     },
+    Or(Vec<super::Operation>),
+    Xor(Vec<super::Operation>),
     And(Vec<super::Operation>),
-    Any(Vec<super::Operation>),
-    OneOf(Vec<super::Operation>),
-    All(Vec<super::Operation>),
-    None(Vec<super::Operation>),
-    Assert(Vec<super::Operation>),
-    Refute(Vec<super::Operation>),
     Cloned {
         #[serde(default)]
         result: StackExtendMode,
@@ -58,6 +52,7 @@ pub enum Control {
         #[serde(skip_serializing_if = "Option::is_none")]
         max: Option<usize>,
     },
+    Top(Vec<super::Operation>),
     Log {
         #[serde(default)]
         level: LogLevel,
@@ -70,23 +65,7 @@ impl Control {
         &self,
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, ControlError> {
-        let input = stack.pop().ok_or(ControlError::NoValuesError)?;
-
         let res = match self {
-            Self::True => {
-                stack.push(input);
-                stack
-            }
-            Self::False => return Err(ControlError::RequirementNotSatisfied),
-            Self::Any(ops) => {
-                stack.extend(
-                    ops.iter()
-                        .find_map(|op| super::process_operations(vec![input.clone()], &[op]).ok())
-                        .ok_or(ControlError::RequirementNotSatisfied)?
-                        .into_iter(),
-                );
-                stack
-            }
             Self::Test { r#if, then, r#else } => {
                 let ops = if super::process_operations(stack.clone(), &[r#if]).is_ok() {
                     then
@@ -97,65 +76,27 @@ impl Control {
                 super::process_operations(stack, ops.as_slice())
                     .map_err(|e| ControlError::InnerOperationError(e.into()))?
             }
-            Self::OneOf(ops) => {
-                stack.extend(
-                    ops.iter()
-                        .try_fold(None, |acc, op| {
-                            if let Ok(result) =
-                                super::process_operations(vec![input.clone()], &[op])
-                            {
-                                if acc.is_some() {
-                                    None
-                                } else {
-                                    Some(Some(result))
-                                }
-                            } else {
-                                Some(acc)
-                            }
-                        })
-                        .flatten()
-                        .ok_or(ControlError::RequirementNotSatisfied)?,
-                );
-                stack
-            }
-            Self::All(ops) => ops
+            Self::Or(ops) => ops
                 .iter()
-                .all(|op| super::process_operations(vec![input.clone()], &[op]).is_ok())
-                .then(|| {
-                    stack.push(input);
-                    stack
-                })
+                .find_map(|op| super::process_operations(stack.clone(), &[op]).ok())
                 .ok_or(ControlError::RequirementNotSatisfied)?,
-            Self::None(ops) => ops
+            Self::Xor(ops) => ops
                 .iter()
-                .all(|op| super::process_operations(vec![input.clone()], &[op]).is_err())
-                .then(|| {
-                    stack.push(input);
-                    stack
+                .try_fold(None, |acc, op| {
+                    if let Ok(result) = super::process_operations(stack.clone(), &[op]) {
+                        if acc.is_some() {
+                            None
+                        } else {
+                            Some(Some(result))
+                        }
+                    } else {
+                        Some(acc)
+                    }
                 })
+                .flatten()
                 .ok_or(ControlError::RequirementNotSatisfied)?,
-            Self::Assert(ops) => {
-                stack.push(input);
-
-                let _ = super::process_operations(stack.clone(), ops)
-                    .map_err(|_| ControlError::RequirementNotSatisfied)?;
-
-                stack
-            }
-            Self::Refute(ops) => {
-                stack.push(input);
-
-                if super::process_operations(stack.clone(), ops).is_ok() {
-                    return Err(ControlError::RequirementNotSatisfied);
-                }
-
-                stack
-            }
-            Self::And(ops) => {
-                stack.push(input);
-                super::process_operations(stack, ops.as_slice())
-                    .map_err(|e| ControlError::InnerOperationError(e.into()))?
-            }
+            Self::And(ops) => super::process_operations(stack, ops.as_slice())
+                .map_err(|e| ControlError::InnerOperationError(e.into()))?,
             Self::Cloned { result, ops } => {
                 let new_stack = stack.clone();
                 match super::process_operations(new_stack, ops.as_slice()) {
@@ -193,9 +134,15 @@ impl Control {
                     Err(e) => return Err(ControlError::InnerOperationError(e.into())),
                 }
             }
+            Self::Top(ops) => {
+                let input = stack.pop().ok_or(ControlError::NoValuesError)?;
+                let res = super::process_operations(vec![input], ops.as_slice())
+                    .map_err(|e| ControlError::InnerOperationError(e.into()))?;
+                stack.extend(res.into_iter());
+                stack
+            }
             Self::Log { level, msg } => {
                 crate::log!(&"[3scale-auth/config]", *level, "{}", msg);
-                stack.push(input);
                 stack
             }
         };

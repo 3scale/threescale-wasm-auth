@@ -140,9 +140,7 @@ mod test {
                     Some(vec![Source::QueryString {
                         keys: vec!["api_key".into()],
                         ops: Some(vec![
-                            Operation::Control(Control::Assert(vec![Operation::Control(
-                                Control::True,
-                            )])),
+                            Operation::Check(Check::Assert(vec![Operation::Check(Check::Ok)])),
                             Operation::StringOp(StringOp::Split {
                                 separator: ":".into(),
                                 max: Some(2),
@@ -159,6 +157,71 @@ mod test {
                         ]),
                     }]),
                     Some(vec![
+                        Source::Header {
+                            keys: vec!["authorization".into()],
+                            ops: vec![
+                                Operation::Stack(Stack::Values {
+                                    level: Default::default(),
+                                    id: Some("init".into()),
+                                }),
+                                Operation::StringOp(StringOp::Split {
+                                    separator: " ".into(),
+                                    max: Some(2),
+                                }),
+                                Operation::Stack(Stack::Length {
+                                    min: Some(2),
+                                    max: None,
+                                }),
+                                Operation::Stack(Stack::Reverse),
+                                Operation::StringOp(StringOp::Glob(
+                                    GlobPatternSet::new(["Basic"].iter()).unwrap(),
+                                )),
+                                Operation::Stack(Stack::Drop {
+                                    tail: Some(1),
+                                    head: None,
+                                }),
+                                Operation::Decode(Decode::Base64UrlSafe),
+                                Operation::StringOp(StringOp::Split {
+                                    max: Some(2),
+                                    separator: ":".into(),
+                                }),
+                                Operation::Control(Control::Test {
+                                    r#if: Operation::Stack(Stack::Length {
+                                        min: Some(2),
+                                        max: None,
+                                    })
+                                    .into(),
+                                    then: vec![Operation::StringOp(StringOp::Length {
+                                        min: Some(1),
+                                        max: Some(63),
+                                        mode: Default::default(),
+                                    })],
+                                    r#else: vec![],
+                                }),
+                                Operation::Check(Check::Assert(vec![Operation::Control(
+                                    Control::And(vec![
+                                        Operation::Stack(Stack::Reverse),
+                                        Operation::Control(Control::Or(
+                                            [
+                                                Operation::StringOp(StringOp::Length {
+                                                    min: Some(8),
+                                                    max: None,
+                                                    mode: Default::default(),
+                                                }),
+                                                Operation::StringOp(StringOp::Glob(
+                                                    GlobPatternSet::new(
+                                                        ["aladdin", "admin"].iter(),
+                                                    )
+                                                    .unwrap(),
+                                                )),
+                                            ]
+                                            .into(),
+                                        )),
+                                    ]),
+                                )])),
+                            ]
+                            .into(),
+                        },
                         Source::Filter {
                             path: vec!["envoy.filters.http.jwt_authn".into(), "0".into()],
                             keys: vec!["azp".into(), "aud".into()],
