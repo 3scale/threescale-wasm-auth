@@ -211,7 +211,7 @@ impl Stack {
                     id.as_ref().map(|id| id.as_str()).unwrap_or("()"),
                     stack
                         .iter()
-                        .map(|s| format!(r#""{}""#, s))
+                        .map(|s| format!(r#"{:#?}"#, s.as_ref()))
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
