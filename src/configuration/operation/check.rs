@@ -17,6 +17,8 @@ pub enum Check {
     None(Vec<super::Operation>),
     Assert(Vec<super::Operation>),
     Refute(Vec<super::Operation>),
+    Ok,
+    Fail,
 }
 
 impl Check {
@@ -70,6 +72,8 @@ impl Check {
                     return Err(CheckError::RequirementNotSatisfied);
                 }
             }
+            Self::Ok => (),
+            Self::Fail => return Err(CheckError::RequirementNotSatisfied),
         };
 
         Ok(stack)

@@ -30,8 +30,6 @@ impl Default for StackExtendMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Control {
-    True,
-    False,
     Test {
         #[serde(rename = "if")]
         r#if: Box<super::Operation>,
@@ -68,8 +66,6 @@ impl Control {
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, ControlError> {
         let res = match self {
-            Self::True => stack,
-            Self::False => return Err(ControlError::RequirementNotSatisfied),
             Self::Test { r#if, then, r#else } => {
                 let ops = if super::process_operations(stack.clone(), &[r#if]).is_ok() {
                     then
