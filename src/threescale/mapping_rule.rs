@@ -8,6 +8,8 @@ pub struct MappingRule {
     #[serde(flatten)]
     pub rule: RestRule,
     pub usages: Vec<Usage>,
+    #[serde(default)]
+    pub last: bool,
 }
 
 impl MappingRule {
@@ -37,5 +39,9 @@ impl MappingRule {
 
     pub fn is_match(&self, method: &Method, pattern: &str) -> bool {
         self.rule.matches(method, pattern)
+    }
+
+    pub fn is_last(&self) -> bool {
+        self.last
     }
 }
