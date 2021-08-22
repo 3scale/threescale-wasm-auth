@@ -10,8 +10,8 @@ This is a proxy-wasm filter integration for 3scale.
 
 ## Documentation
 
-Please check out the [reference][./docs/reference.md] for information on how to set up and configure this module.
-For information on the supported operations, read the [operations reference][./docs/operations.md].
+Please check out the [reference](./docs/reference.md) for information on how to set up and configure this module.
+For information on the supported operations, read the [operations reference](./docs/operations.md).
 
 ## Demo
 
