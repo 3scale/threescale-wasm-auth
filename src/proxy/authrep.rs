@@ -100,6 +100,10 @@ pub fn authrep<'a>(
                 let value = usages.entry(usage.name()).or_insert(0);
                 *value += usage.delta();
             }
+            if rule.is_last() {
+                debug!(ctx, "rule is last, stopping further evaluation");
+                break;
+            }
         }
     }
 
