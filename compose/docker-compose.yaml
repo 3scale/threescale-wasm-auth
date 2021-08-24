@@ -1,7 +1,7 @@
 version: "2.2"
 services:
   ingress:
-    image: istio/proxyv2:1.9.6
+    image: istio/proxyv2:1.9.8
     entrypoint: /bin/bash -c 'sleep 1 && /usr/local/bin/envoy -c /etc/envoy/envoy.yaml --bootstrap-version 3 --service-cluster $$(domainname) --service-node $$(hostname) --log-level trace'
     volumes:
       - ${ENVOY_DIR:-./envoy}:/etc/envoy/:z,rw
