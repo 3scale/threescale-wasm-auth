@@ -2,6 +2,7 @@
   - [Introduction](#introduction)
   - [Compatibility](#compatibility)
     - [Usage as a standalone module](#usage-as-a-standalone-module)
+    - [3scale](#3scale)
 - [Configuration](#configuration)
   - [Service Mesh Extension](#service-mesh-extension)
     - [Service Mesh Extension Custom Resource](#service-mesh-extension-custom-resource)
@@ -61,6 +62,11 @@ thoroughly tested to work with the [`Envoy`](https://www.envoyproxy.io/) reverse
 Because of its self-contained design, this module can be set up to work with `Proxy-WASM`-adhering
 proxies independently of `OpenShift Service Mesh` (as well as [`Istio`](https://istio.io/))
 deployments. Running the module in this way, however, falls outside the scope of this document.
+
+### 3scale
+
+The module can work with all supported `3scale` releases except when configuring a service to use
+[`Open ID Connect`](https://openid.net/connect/). In this case you'll need `3scale 2.11` or later.
 
 # Configuration
 
@@ -360,7 +366,7 @@ Each element in the `services` array represents a `3scale` service. The fields a
            Apisonator.
 * `authorities`: Required. An array of strings, each one representing the [`Authority`](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)
                  of a `URL` to match. These strings do accept [`glob patterns`](https://en.wikipedia.org/wiki/Glob_%28programming%29)
-                 supporting the `*` and `?` matchers.
+                 supporting the `*`, `+` and `?` matchers.
 * `credentials`: Required. An object defining which kind of credentials to look for and where.
                  See definition below.
 * `mapping_rules`: Required. An array of objects representing mapping rules and `3scale` methods to hit.
@@ -389,7 +395,7 @@ The next section will deal with `lookup queries`. Fields are as follows:
               A user key is commonly known as an [`API key`](https://en.wikipedia.org/wiki/Application_programming_interface_key).
 * `app_id`: Optional. This is an array of `lookup queries` that will define a `3scale` application
             identifier. Application identifiers are provided by `3scale`, or via an identity provider
-            like [`RedHatSSO`](https://access.redhat.com/products/red-hat-single-sign-on) (available
+            like [`Red Hat SSO`](https://access.redhat.com/products/red-hat-single-sign-on) (known
             as [`Keycloak`](https://www.keycloak.org/) upstream) via `OIDC`. The resolution of the
             `lookup queries` specified here, whenever it is successful _and resolves to two values_,
             will not only set up the application identifier, but also the application key, `app_key`.
