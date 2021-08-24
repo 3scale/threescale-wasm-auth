@@ -2,6 +2,7 @@
   - [Introduction](#introduction)
   - [Compatibility](#compatibility)
     - [Usage as a standalone module](#usage-as-a-standalone-module)
+    - [3scale](#3scale)
 - [Configuration](#configuration)
   - [Service Mesh Extension](#service-mesh-extension)
     - [Service Mesh Extension Custom Resource](#service-mesh-extension-custom-resource)
@@ -61,6 +62,11 @@ thoroughly tested to work with the [`Envoy`](https://www.envoyproxy.io/) reverse
 Because of its self-contained design, this module can be set up to work with `Proxy-WASM`-adhering
 proxies independently of `OpenShift Service Mesh` (as well as [`Istio`](https://istio.io/))
 deployments. Running the module in this way, however, falls outside the scope of this document.
+
+### 3scale
+
+The module can work with all supported `3scale` releases except when configuring a service to use
+[`Open ID Connect`](https://openid.net/connect/). In this case you'll need `3scale 2.11` or later.
 
 # Configuration
 
