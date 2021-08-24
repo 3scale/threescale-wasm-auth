@@ -235,11 +235,11 @@ for dealing with `user key`, `app id`, `app id` with `app key`, and `OIDC` patte
 ### The `api` object
 
 The `api` top level string of the configuration tells the module which version of the
-configuration to expect. A non existed or unsupported version will render the module
+configuration to expect. A non existing or unsupported version will render the module
 inoperant.
 
 ```yaml
-spec
+spec:
   config:
     api: v1
 ```
