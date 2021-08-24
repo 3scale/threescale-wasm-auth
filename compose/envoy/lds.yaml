@@ -86,7 +86,8 @@ resources:
                                 "url": "https://istiodevel-admin.3scale.net/",
                                 "timeout": 5000
                               },
-                              "token": "atoken"
+                              "token": "atoken",
+                              "ttl": 180
                             },
                             "backend": {
                               "name": "backend-name",

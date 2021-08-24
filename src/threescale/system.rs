@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use core::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use crate::upstream::Upstream;
@@ -10,6 +12,8 @@ pub struct System {
     pub name: Option<String>,
     pub upstream: Upstream,
     pub token: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<u64>,
 }
 
 impl System {
@@ -23,5 +27,10 @@ impl System {
 
     pub fn token(&self) -> &str {
         self.token.as_str()
+    }
+
+    pub fn ttl(&self) -> Duration {
+        let ttl = self.ttl.unwrap_or(300);
+        Duration::from_secs(ttl)
     }
 }

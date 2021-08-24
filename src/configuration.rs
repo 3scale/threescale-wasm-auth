@@ -111,6 +111,7 @@ mod test {
                     timeout: Duration::from_millis(5000),
                 },
                 token: "atoken".into(),
+                ttl: Some(300),
             }),
             backend: Some(Backend {
                 name: Some("backend-name".into()),
