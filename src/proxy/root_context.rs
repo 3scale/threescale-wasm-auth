@@ -113,11 +113,13 @@ impl RootContext for RootAuthThreescale {
                 "on_vm_start: VM configuration is {}",
                 core::str::from_utf8(conf).unwrap()
             );
-            true
         } else {
+            // We currently don't need a VM config, so don't
+            // fail if there's none.
             warn!(self, "on_vm_start: empty VM config");
-            false
         }
+
+        true
     }
 
     fn on_configure(&mut self, plugin_configuration_size: usize) -> bool {
