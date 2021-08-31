@@ -51,7 +51,7 @@ impl HttpContext for HttpAuthThreescale {
             Err(e) => {
                 error!(self, "error computing authrep {:?}", e);
                 self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                info!(self, "threescale_wasm_auth: 403 sent");
+                debug!(self, "403 sent");
                 return FilterHeadersStatus::StopIteration;
             }
             Ok(params) => params,
@@ -65,7 +65,7 @@ impl HttpContext for HttpAuthThreescale {
                 Err(e) => {
                     error!(self, "failed to pass app info to next filter: {:?}", e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!(self, "threescale_wasm_auth: 403 sent");
+                    debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
             }
@@ -76,7 +76,7 @@ impl HttpContext for HttpAuthThreescale {
                 Err(e) => {
                     error!(self, "error computing authrep request {:?}", e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!(self, "threescale_wasm_auth: 403 sent");
+                    debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
                 Ok(request) => request,
@@ -105,14 +105,14 @@ impl HttpContext for HttpAuthThreescale {
                 Err(e) => {
                     error!(self, "on_http_request_headers: could not dispatch HTTP call to {}: did you create the cluster to do so? - {:#?}", upstream.name(), e);
                     self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-                    info!(self, "threescale_wasm_auth: 403 sent");
+                    debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
             };
 
             info!(
                 self,
-                "threescale_wasm_auth: on_http_request_headers: call token is {}", call_token
+                "on_http_request_headers: call token is {}", call_token
             );
 
             FilterHeadersStatus::StopIteration
@@ -120,7 +120,7 @@ impl HttpContext for HttpAuthThreescale {
             // no backend configured
             debug!(self, "on_http_request_headers: no backend configured");
             self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-            info!(self, "threescale_wasm_auth: 403 sent");
+            debug!(self, "403 sent");
             FilterHeadersStatus::StopIteration
         }
     }
@@ -135,7 +135,7 @@ impl Context for HttpAuthThreescale {
     fn on_http_call_response(&mut self, token_id: u32, _: usize, _: usize, _: usize) {
         info!(
             self,
-            "threescale_wasm_auth: http_ctx: on_http_call_response: token id is {}", token_id
+            "http_ctx: on_http_call_response: token id is {}", token_id
         );
         let authorized = self
             .get_http_call_response_headers()
@@ -149,7 +149,7 @@ impl Context for HttpAuthThreescale {
         } else {
             info!(self, "on_http_call_response: forbidden {}", token_id);
             self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-            info!(self, "threescale_wasm_auth: 403 sent");
+            debug!(self, "403 sent");
         }
     }
 }
