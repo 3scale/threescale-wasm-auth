@@ -174,10 +174,7 @@ impl RootContext for RootAuthThreescale {
     }
 
     fn on_create_child_context(&mut self, context_id: u32) -> Option<ChildContext> {
-        info!(
-            self,
-            "threescale_wasm_auth: creating new context {}", context_id
-        );
+        info!(self, "creating new context {}", context_id);
         let ctx = HttpAuthThreescale {
             context_id,
             configuration: self.configuration.as_ref().unwrap().clone(),
