@@ -89,7 +89,7 @@ resources:
                                 "timeout": 5000
                               },
                               "token": "atoken",
-                              "ttl": 180
+                              "ttl": 20
                             },
                             "backend": {
                               "name": "backend-name",
