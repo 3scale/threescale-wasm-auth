@@ -97,6 +97,7 @@ impl HttpContext for HttpAuthThreescale {
                 uri.as_ref(),
                 request.method.as_str(),
                 headers,
+                None,
                 body.map(str::as_bytes),
                 None,
                 None,
