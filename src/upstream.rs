@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::anyhow;
 use core::convert::TryFrom;
 use core::iter::Extend;
@@ -42,8 +44,24 @@ impl Upstream {
         self.url.path()
     }
 
-    pub fn query_string(&self) -> Option<&str> {
-        self.url.query()
+    pub fn query_string<'a>(&'a self, extra: Option<&'a str>) -> Option<Cow<'a, str>> {
+        let s = self.url.query().map(Cow::from);
+        if let Some(extra) = extra {
+            let s = s
+                .map(|qs| {
+                    let mut qs = qs.to_owned();
+                    let s = qs.to_mut();
+                    s.push('&');
+                    s.push_str(extra);
+
+                    qs
+                })
+                .unwrap_or_else(|| Cow::from(extra));
+
+            Some(s)
+        } else {
+            s
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -99,6 +117,7 @@ impl Upstream {
         path: &str,
         method: &str,
         headers: Vec<(&str, &str)>,
+        extra_qs: Option<&str>,
         body: Option<&[u8]>,
         trailers: Option<Vec<(&str, &str)>>,
         timeout_ms: Option<u64>,
@@ -107,11 +126,15 @@ impl Upstream {
         let mut path = self.path().to_string();
         path.push_str(extra_path);
 
-        if let Some(qs) = self.query_string() {
-            if !path.contains('?') {
+        let qs = self.query_string(extra_qs);
+        if let Some(qs) = qs {
+            if !extra_path.contains('?') {
                 path.push('?');
+            } else {
+                path.push('&');
             }
-            path.push_str(qs);
+
+            path.push_str(qs.as_ref());
         }
 
         Self::do_call(
