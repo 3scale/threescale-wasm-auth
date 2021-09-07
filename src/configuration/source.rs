@@ -160,7 +160,7 @@ impl Source {
 
         res.and_then(|(values, ops)| {
             if let Some(ops) = ops {
-                super::process_operations(values, ops.as_slice()).ok()
+                super::process_operations(ctx, values, ops.as_slice()).ok()
             } else {
                 Some(values)
             }

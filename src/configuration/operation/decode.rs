@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
 #[allow(clippy::enum_variant_names)]
@@ -25,6 +26,7 @@ pub enum Decode {
 impl Decode {
     pub fn process<'a>(
         &self,
+        _ctx: &dyn HttpContext,
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, DecodeError> {
         let input = stack.pop().ok_or(DecodeError::NoValuesError)?;
