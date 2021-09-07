@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -22,19 +23,23 @@ pub enum Check {
 }
 
 impl Check {
-    pub fn process<'a>(&self, stack: Vec<Cow<'a, str>>) -> Result<Vec<Cow<'a, str>>, CheckError> {
+    pub fn process<'a>(
+        &self,
+        ctx: &dyn HttpContext,
+        stack: Vec<Cow<'a, str>>,
+    ) -> Result<Vec<Cow<'a, str>>, CheckError> {
         match self {
             Self::Any(ops) => {
                 let _ = ops
                     .iter()
-                    .find(|op| super::process_operations(stack.clone(), &[op]).is_ok())
+                    .find(|op| super::process_operations(ctx, stack.clone(), &[op]).is_ok())
                     .ok_or(CheckError::RequirementNotSatisfied)?;
             }
             Self::OneOf(ops) => {
                 let _ = ops
                     .iter()
                     .try_fold(None, |acc, op| {
-                        if let Ok(result) = super::process_operations(stack.clone(), &[op]) {
+                        if let Ok(result) = super::process_operations(ctx, stack.clone(), &[op]) {
                             if acc.is_some() {
                                 None
                             } else {
@@ -50,7 +55,7 @@ impl Check {
             Self::All(ops) => {
                 if !ops
                     .iter()
-                    .all(|op| super::process_operations(stack.clone(), &[op]).is_ok())
+                    .all(|op| super::process_operations(ctx, stack.clone(), &[op]).is_ok())
                 {
                     return Err(CheckError::RequirementNotSatisfied);
                 }
@@ -58,17 +63,17 @@ impl Check {
             Self::None(ops) => {
                 if !ops
                     .iter()
-                    .all(|op| super::process_operations(stack.clone(), &[op]).is_err())
+                    .all(|op| super::process_operations(ctx, stack.clone(), &[op]).is_err())
                 {
                     return Err(CheckError::RequirementNotSatisfied);
                 }
             }
             Self::Assert(ops) => {
-                let _ = super::process_operations(stack.clone(), ops)
+                let _ = super::process_operations(ctx, stack.clone(), ops)
                     .map_err(|_| CheckError::RequirementNotSatisfied)?;
             }
             Self::Refute(ops) => {
-                if super::process_operations(stack.clone(), ops).is_ok() {
+                if super::process_operations(ctx, stack.clone(), ops).is_ok() {
                     return Err(CheckError::RequirementNotSatisfied);
                 }
             }

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
 mod check;
@@ -60,17 +61,18 @@ pub enum Matcher {
 }
 
 pub fn process_operations<'a, O: AsRef<Operation>>(
+    ctx: &dyn HttpContext,
     mut v: Vec<Cow<'a, str>>,
     ops: &[O],
 ) -> Result<Vec<Cow<'a, str>>, super::OperationError> {
     for op in ops {
         v = match op.as_ref() {
-            Operation::Stack(stack) => stack.process(v)?,
-            Operation::Check(check) => check.process(v)?,
-            Operation::Control(control) => control.process(v)?,
-            Operation::StringOp(string_op) => string_op.process(v)?,
-            Operation::Decode(decoding) => decoding.process(v)?,
-            Operation::Format(format) => format.process(v)?,
+            Operation::Stack(stack) => stack.process(ctx, v)?,
+            Operation::Check(check) => check.process(ctx, v)?,
+            Operation::Control(control) => control.process(ctx, v)?,
+            Operation::StringOp(string_op) => string_op.process(ctx, v)?,
+            Operation::Decode(decoding) => decoding.process(ctx, v)?,
+            Operation::Format(format) => format.process(ctx, v)?,
         };
         if v.is_empty() {
             return Err(super::OperationError::NoOutputValue);

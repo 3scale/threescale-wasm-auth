@@ -1,3 +1,4 @@
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
@@ -37,6 +38,7 @@ pub enum Format {
 impl Format {
     pub fn process<'a>(
         &self,
+        _ctx: &dyn HttpContext,
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, FormatError> {
         let input = stack.pop().ok_or(FormatError::NoValuesError)?;

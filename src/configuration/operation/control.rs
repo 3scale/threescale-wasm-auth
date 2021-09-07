@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
 use crate::log::LogLevel;
@@ -63,27 +64,28 @@ pub enum Control {
 impl Control {
     pub fn process<'a>(
         &self,
+        ctx: &dyn HttpContext,
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, ControlError> {
         let res = match self {
             Self::Test { r#if, then, r#else } => {
-                let ops = if super::process_operations(stack.clone(), &[r#if]).is_ok() {
+                let ops = if super::process_operations(ctx, stack.clone(), &[r#if]).is_ok() {
                     then
                 } else {
                     r#else
                 };
 
-                super::process_operations(stack, ops.as_slice())
+                super::process_operations(ctx, stack, ops.as_slice())
                     .map_err(|e| ControlError::InnerOperationError(e.into()))?
             }
             Self::Or(ops) => ops
                 .iter()
-                .find_map(|op| super::process_operations(stack.clone(), &[op]).ok())
+                .find_map(|op| super::process_operations(ctx, stack.clone(), &[op]).ok())
                 .ok_or(ControlError::RequirementNotSatisfied)?,
             Self::Xor(ops) => ops
                 .iter()
                 .try_fold(None, |acc, op| {
-                    if let Ok(result) = super::process_operations(stack.clone(), &[op]) {
+                    if let Ok(result) = super::process_operations(ctx, stack.clone(), &[op]) {
                         if acc.is_some() {
                             None
                         } else {
@@ -95,11 +97,11 @@ impl Control {
                 })
                 .flatten()
                 .ok_or(ControlError::RequirementNotSatisfied)?,
-            Self::And(ops) => super::process_operations(stack, ops.as_slice())
+            Self::And(ops) => super::process_operations(ctx, stack, ops.as_slice())
                 .map_err(|e| ControlError::InnerOperationError(e.into()))?,
             Self::Cloned { result, ops } => {
                 let new_stack = stack.clone();
-                match super::process_operations(new_stack, ops.as_slice()) {
+                match super::process_operations(ctx, new_stack, ops.as_slice()) {
                     Ok(mut v) => match result {
                         StackExtendMode::Append => {
                             stack.extend(v.into_iter());
@@ -120,7 +122,7 @@ impl Control {
                     return Err(ControlError::NoValuesError);
                 }
 
-                match super::process_operations(partial, ops.as_slice()) {
+                match super::process_operations(ctx, partial, ops.as_slice()) {
                     Ok(mut v) => match result {
                         StackExtendMode::Append => {
                             stack.extend(v.into_iter());
@@ -136,7 +138,7 @@ impl Control {
             }
             Self::Top(ops) => {
                 let input = stack.pop().ok_or(ControlError::NoValuesError)?;
-                let res = super::process_operations(vec![input], ops.as_slice())
+                let res = super::process_operations(ctx, vec![input], ops.as_slice())
                     .map_err(|e| ControlError::InnerOperationError(e.into()))?;
                 stack.extend(res.into_iter());
                 stack

@@ -1,6 +1,7 @@
 use core::convert::TryFrom;
 use std::borrow::Cow;
 
+use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
 use super::OperationError;
@@ -66,6 +67,7 @@ pub enum Stack {
 impl Stack {
     pub fn process<'a>(
         &self,
+        ctx: &dyn HttpContext,
         mut stack: Vec<Cow<'a, str>>,
     ) -> Result<Vec<Cow<'a, str>>, StackError> {
         if stack.is_empty() {
@@ -188,7 +190,7 @@ impl Stack {
             }
             Self::FlatMap(ops) => {
                 let r = match stack.into_iter().try_fold(vec![], |mut acc, e| {
-                    super::process_operations(vec![e], ops.as_slice()).map(|v| {
+                    super::process_operations(ctx, vec![e], ops.as_slice()).map(|v| {
                         acc.push(v);
                         acc
                     })
@@ -200,7 +202,7 @@ impl Stack {
             }
             Self::Select(ops) => stack
                 .into_iter()
-                .filter_map(|e| super::process_operations(vec![e], ops.as_slice()).ok())
+                .filter_map(|e| super::process_operations(ctx, vec![e], ops.as_slice()).ok())
                 .flatten()
                 .collect::<Vec<_>>(),
             Self::Values { level, id } => {
