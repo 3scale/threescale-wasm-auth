@@ -1,8 +1,12 @@
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 COMPOSEFILE := $(PROJECT_PATH)/compose/docker-compose.yaml
-DOCKER_COMPOSE := docker-compose -f $(COMPOSEFILE)
+DOCKER_COMPOSE_BIN ?= $(shell which docker-compose)
+DOCKER_COMPOSE := $(DOCKER_COMPOSE_BIN) -f $(COMPOSEFILE)
+DOCKER ?= $(shell which podman 2> /dev/null || which docker 2> /dev/null || echo docker)
 OPEN_APP ?= xdg-open
+BUILDER_IMAGE_NAME ?= threescale-wasm-auth-builder
+BUILDER_CONTAINER_NAME ?= threescale-wasm-auth-builder-container
 
 .PHONY: release-extension
 release-extension: export BUILD?=release
@@ -24,10 +28,38 @@ push-extension: export IMAGE_VERSION?=latest
 push-extension: ## Push WASM filter docker image
 	$(MAKE) -C $(PROJECT_PATH)/servicemesh push
 
+.PHONY: with-container-do
+with-container-do:
+	$(DOCKER) run --rm -v $(PROJECT_PATH):/build:z -ti $(BUILDER_IMAGE_NAME) $(BUILDER_CMD)
+
 .PHONY: release
 release: export BUILD?=release
 release: ## Build release WASM filter
 	$(MAKE) build
+
+.PHONY: release-with-container
+release-with-container: export BUILD?=release
+release-with-container: export BUILDER_CMD=make build
+release-with-container: builder-image ## Build WASM filter in release mode (via container)
+	$(MAKE) -C $(PROJECT_PATH) -f $(MKFILE_PATH) with-container-do
+
+.PHONY: builder-image
+builder-image:
+	$(DOCKER) history -q $(BUILDER_IMAGE_NAME) 2> /dev/null >&2 || \
+	$(DOCKER) build -t $(BUILDER_IMAGE_NAME) -f $(PROJECT_PATH)/ci/Dockerfile.build $(PROJECT_PATH)
+
+.PHONY: clean-builder-container
+clean-builder-container:
+	-$(DOCKER) kill $(BUILDER_CONTAINER_NAME)
+
+.PHONY: clean-builder-image
+clean-builder-image: clean-builder-container ## Remove builder container and image
+	-$(DOCKER) rmi $(BUILDER_IMAGE_NAME)
+
+.PHONY: build-with-container
+build-with-container: export BUILDER_CMD=make build
+build-with-container: builder-image ## Build WASM filter (via container)
+	$(MAKE) -C $(PROJECT_PATH) -f $(MKFILE_PATH) with-container-do
 
 .PHONY: build
 build: export TARGET?=wasm32-unknown-unknown
@@ -49,6 +81,11 @@ clean: ## Clean WASM filter
 	cargo clean
 	rm -f $(PROJECT_PATH)/compose/wasm/threescale_wasm_auth.wasm
 	rm -f $(PROJECT_PATH)/servicemesh/threescale_wasm_auth.wasm
+
+.PHONY: clean-with-container
+clean-with-container: export BUILDER_CMD=make clean
+clean-with-container: builder-image ## Clean WASM filter (via container)
+	$(MAKE) -C $(PROJECT_PATH) -f $(MKFILE_PATH) with-container-do
 
 .PHONY: doc
 doc: ## Open project documentation

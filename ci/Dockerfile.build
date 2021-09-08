@@ -1,0 +1,21 @@
+FROM docker.io/library/rust:1.54.0-bullseye
+
+ARG WASM_SNIP_VERSION_SPEC="^0.4"
+ARG WASM_GC_VERSION_SPEC="^0.1"
+
+RUN rustup target install wasm32-unknown-unknown \
+ && cargo install --version "${WASM_SNIP_VERSION_SPEC}" wasm-snip \
+ && cargo install --version "${WASM_GC_VERSION_SPEC}" wasm-gc \
+ && cargo new --lib /fetcher
+
+COPY Cargo.toml Cargo.lock /
+
+RUN mv /Cargo.* /fetcher \
+ && cd /fetcher \
+ && cargo fetch \
+ && cd / \
+ && rm -rf /fetcher
+
+WORKDIR /build
+
+CMD ["make", "build"]
