@@ -19,8 +19,8 @@ To run the demo:
 
 1. Edit lds.conf in compose/envoy to fill in service data (ids, tokens, rules, ...).
 2. Optionally edit compose/envoy/envoy.yaml to point the 3scale SaaS cluster to your 3scale (backend) instance.
-3. Run `make build` to build the WebAssembly extension.
-4. Run `make up` to run the docker-compose environment.
+3. Run `make build-with-container` to build the WebAssembly extension.
+4. Run `make up` to run the `docker-compose` environment.
 5. Run `make shell` in a different terminal and explore the scripts in `/examples`.
    There is an OIDC script that obtains a token from Keycloak and uses it to authenticate against the proxy.
 
