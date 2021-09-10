@@ -47,6 +47,7 @@ pub struct ThreadRng;
 
 impl ThreadRng {
     // Construct a thread
+    #[allow(clippy::self_named_constructors)]
     #[inline]
     pub fn thread_rng(
         ctx: &(dyn Context + Send + Sync),
