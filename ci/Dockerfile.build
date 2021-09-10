@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.54.0-bullseye
+FROM docker.io/library/rust:1.55.0-bullseye
 
 ARG WASM_SNIP_VERSION_SPEC="^0.4"
 ARG WASM_GC_VERSION_SPEC="^0.1"
