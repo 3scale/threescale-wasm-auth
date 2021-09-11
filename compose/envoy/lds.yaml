@@ -154,10 +154,23 @@ resources:
                                               "then": [
                                                 {
                                                   "strlen": {
-                                                    "min": 1,
                                                     "max": 63,
                                                     "mode": "utf8"
                                                   }
+                                                },
+                                                {
+                                                  "or": [
+                                                    {
+                                                      "strlen": {
+                                                        "min": 1
+                                                      }
+                                                    },
+                                                    {
+                                                      "drop": {
+                                                        "tail": 1
+                                                      }
+                                                    }
+                                                  ]
                                                 }
                                               ]
                                             }
