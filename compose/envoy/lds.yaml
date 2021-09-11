@@ -39,6 +39,8 @@ resources:
                         audiences:
                           - admin-cli
                           - test
+                          - mobile-app
+                          - another-app
                         remote_jwks:
                           http_uri:
                             uri: https://keycloak:8443/auth/realms/master/protocol/openid-connect/certs

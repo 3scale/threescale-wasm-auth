@@ -91,7 +91,7 @@ impl Upstream {
             Some(bytes) => String::from_utf8_lossy(bytes),
             None => "(nothing)".into(),
         };
-        log::debug!(
+        log::info!(
             "calling out {} (using {} scheme) with headers -> {:?} <- and body -> {:?} <-",
             name,
             scheme,

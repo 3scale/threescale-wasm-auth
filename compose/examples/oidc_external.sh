@@ -144,13 +144,23 @@ get_client_secret() {
 }
 
 main() {
-	local web="${1}"
-	local url="${2}"
-	local realm="${3}"
-	local client_id="${4}"
+	local client_id="${1}"
+	local web="${2}"
+	local url="${3}"
+	local realm="${4}"
 	local user="${5:-${KEYCLOAK_USER:-admin}}"
 	local passwd="${6:-${KEYCLOAK_PASSWORD:-admin}}"
 
+	echo >&2 "Note optional args: <client_id> <proxy-url> <idp-url> <realm> <use
+r> <passwd>"
+
+	if test "x${client_id}" = "x"; then
+		echo >&2 "No client id specified, taking default test"
+		client_id="test"
+	else
+		echo >&2 "Please ensure ${client_id} is specified in the allow list of audiences"
+
+	fi
 	if test "x${web}" = "x"; then
 		echo >&2 "No proxy URL specified, taking default http://ingress/oidc"
 		web="http://ingress/oidc"
@@ -162,10 +172,6 @@ main() {
 	if test "x${realm}" = "x"; then
 		echo >&2 "No realm specified, taking default master"
 		realm="master"
-	fi
-	if test "x${client_id}" = "x"; then
-		echo >&2 "No client id specified, taking default test"
-		client_id="test"
 	fi
 
 	rm -f ./cookies
