@@ -689,8 +689,12 @@ credentials:
                   min: 2
               then:
                 - strlen:
-                    min: 1
                     max: 63
+                - or:
+                    - strlen:
+                        min: 1
+                    - drop:
+                        tail: 1
           - assert:
             - and:
               - reverse
@@ -708,9 +712,10 @@ glob match on it.
 
 Once we have validated this, and decoded and split the credential, we have the `app_id` at the
 bottom of the stack, and potentially an `app_key` at the top. At this point we run a `test`: if we
-got two values in the stack, meaning we got an `app_key`, then we ensure its string length is between
-1 and 63, both included. If there was only an `app_id` and no `app_key`, the missing `else` branch
-indicates that the `test` should be successful so evaluation continues.
+got two values in the stack, meaning we got an `app_key`, then we ensure its string length is
+between 1 and 63, both included. If the key's length was zero we drop it and continue as if no key
+was specified. If there was only an `app_id` and no `app_key`, the missing `else` branch indicates
+that the `test` should be successful so evaluation continues.
 
 The last operation, `assert`, indicates that no side effects will make it to the stack, so we can
 modify it at will to perform our checks. We will first `reverse` the stack to have the `app_id` at
