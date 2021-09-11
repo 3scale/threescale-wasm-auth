@@ -11,6 +11,15 @@ on:
 jobs:
   clippy_check:
     runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - stable
+          # Help identify breakages about to land in stable earlier
+          - beta
+
     steps:
       - uses: actions/checkout@v2
         with:

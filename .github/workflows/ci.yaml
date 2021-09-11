@@ -22,7 +22,7 @@ jobs:
           - stable
           - beta
             # MSRV
-          - 1.52.1
+          - 1.54.0
         experimental: [false]
         cargo_flags: [--all-features]
         include:
