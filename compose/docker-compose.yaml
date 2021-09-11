@@ -39,12 +39,9 @@ services:
     logging:
       driver: none
     image: quay.io/keycloak/keycloak:12.0.4
-    volumes:
-      - ${KEYCLOAK_DIR:-./keycloak}:/etc/keycloak/:z,ro
     environment:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin
-      #KEYCLOAK_IMPORT: /etc/keycloak/import.json -Dkeycloak.profile.feature.upload_scripts=enabled
       PROXY_ADDRESS_FORWARDING: "true"
     expose:
       - "8080"
