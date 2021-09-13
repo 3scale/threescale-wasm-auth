@@ -59,6 +59,10 @@ rand_pcg = { version = "^0.3", optional = true }
 [dev-dependencies]
 serde_yaml = "^0.8"
 
+[build-dependencies]
+wasm-snip = "^0.4"
+wasm-gc = "^0.1"
+
 [lib]
 # rlib included to be able to use #[test] without compiler and linker issues
 crate-type = ["cdylib", "rlib"]
