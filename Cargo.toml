@@ -63,9 +63,6 @@ serde_yaml = "^0.8"
 # rlib included to be able to use #[test] without compiler and linker issues
 crate-type = ["cdylib", "rlib"]
 
-[build-dependencies]
-autocfg = { git = "https://github.com/unleashed/autocfg", branch = "probe_feature" }
-
 [profile.release]
 opt-level = 3
 debug = true # for wasm-snip to remove panicking infra
