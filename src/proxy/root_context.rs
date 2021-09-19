@@ -9,7 +9,7 @@ use crate::log::IdentLogger;
 use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
 
-use super::config_fetcher::FetcherState;
+use super::config_fetcher::ConfigFetcher;
 use super::http_context::HttpAuthThreescale;
 
 const MIN_SYNC: u64 = 20;
@@ -21,7 +21,7 @@ pub(super) struct RootAuthThreescale {
     context_id: u32,
     id: u32,
     log_id: String,
-    fetcher: FetcherState,
+    fetcher: Vec<ConfigFetcher>,
     config_deadline: SystemTime,
 }
 
@@ -34,7 +34,7 @@ impl RootAuthThreescale {
             context_id: 0,
             id: 0,
             log_id: String::new(),
-            fetcher: FetcherState::Inactive,
+            fetcher: vec![],
             config_deadline: std::time::UNIX_EPOCH,
         }
     }
@@ -101,65 +101,19 @@ impl Context for RootAuthThreescale {
         _body_size: usize,
         _num_trailers: usize,
     ) {
-        match &self.fetcher {
-            FetcherState::Inactive => {
-                // This could be due to receiving a new configuration mid-flight of a system request
-                // We'll just ignore the response and start over again, as system and/or config
-                // could have changed.
-                debug!(
-                    self,
-                    "ignoring call response due to configuration fetcher being inactive"
-                );
+        let cfg_fetcher = self
+            .fetcher
+            .iter_mut()
+            .find(|f| f.token_id().map(|id| id == token_id).unwrap_or(false));
+        match cfg_fetcher {
+            None => {
+                error!(self, "config fetcher for token id {} not found!", token_id);
+                return;
             }
-            FetcherState::ConfigFetched => {
-                warn!(self, "config already fetched but got a response !?");
+            Some(fetcher) => {
+                fetcher.response(self, token_id);
             }
-            FetcherState::FetchingConfig(call_id, svc_id) => {
-                if *call_id != token_id {
-                    warn!(self, "seen a call response without the right token id");
-                }
-                debug!(self, "received response for config for service {}", svc_id);
-                match self.get_http_call_response_body(0, usize::MAX) {
-                    Some(body) => {
-                        info!(self, "got config!");
-                        //let svclist = straitjacket::api::v0::service::LIST;
-                        let configep = straitjacket::api::v0::service::proxy::configs::LATEST;
-                        let body_s = String::from_utf8_lossy(body.as_slice());
-                        //let res = svclist.parse_str(body_s.as_ref());
-                        let res = configep.parse_str(body_s.as_ref());
-                        match res {
-                            Ok(config) => {
-                                info!(self, "config: {:#?}", config);
-                                self.fetcher = FetcherState::ConfigFetched;
-                            }
-                            Err(e) => {
-                                error!(self, "failed to parse config: {}", e);
-                                match serde_json::from_str::<serde_json::Value>(body_s.as_ref())
-                                    .and_then(|json_val| {
-                                        serde_json::to_string_pretty(&json_val)
-                                            .or_else(|_| serde_json::to_string(&json_val))
-                                    }) {
-                                    Ok(json) => error!(self, "JSON error response:\n{}", json),
-                                    Err(_) => {
-                                        error!(self, "RAW error response:\n{}", body_s.as_ref())
-                                    }
-                                }
-                                // TODO FIXME Try to retrieve mapping rules at the very least.
-                            }
-                        }
-                    }
-                    None => {
-                        info!(self, "FAILED TO GET list of mapping rules!");
-                    }
-                }
-            }
-            FetcherState::FetchingConfigs(call_id) => {
-                if *call_id != token_id {
-                    warn!(self, "seen a call response without the right token id");
-                }
-            }
-            FetcherState::Error(_) => todo!(),
-        }
+        };
     }
 }
 
@@ -259,7 +213,7 @@ impl RootContext for RootAuthThreescale {
         );
 
         // cancel any previous work updating configurations
-        self.fetcher = FetcherState::Inactive;
+        self.fetcher = vec![];
 
         let _ = self.set_next_tick();
 
@@ -290,74 +244,32 @@ impl RootContext for RootAuthThreescale {
                     );
                 }
 
-                let upstream = sys.upstream();
-                let new_state = match &self.fetcher {
-                    FetcherState::Inactive => {
-                        if let Some(services) = config.services() {
-                            info!(self, "fetching rules for {} services", services.len());
-                            let ruleslist =
-                                straitjacket::api::v0::service::proxy::mapping_rules::LIST;
-                            let method = ruleslist.method().as_str();
-                            let qs = format!("access_token={}", sys.token());
-                            let results = services.iter().map(|svc| {
-                                let svc_id = svc.id();
-                                let path = ruleslist.path(&[svc_id]);
-                                if let Ok(path) = path {
-                                    match upstream.call(
-                                        self,
-                                        path.as_str(),
-                                        method,
-                                        vec![],
-                                        Some(qs.as_str()),
-                                        None,
-                                        None,
-                                        None,
-                                    ) {
-                                        Ok(call_id) => {
-                                            debug!(self, "fetching rules list for service {}", svc_id);
-                                            FetcherState::FetchingConfig(call_id, svc_id.to_string())
-                                        }
-                                        Err(e) => {
-                                            error!(
-                                                self,
-                                                "failed to initiate fetch of mapping rules list for service {}: {}", svc_id, e
-                                            );
-                                            FetcherState::Error(e.into())
-                                        }
-                                    }
-                                } else {
-                                    critical!(
-                                        self,
-                                        "failed to obtain path for mapping rules list API: {}",
-                                        path.unwrap_err()
-                                    );
-                                    FetcherState::Inactive
-                                }
-                            });
-                            FetcherState::Inactive
-                        } else {
-                            FetcherState::Inactive
-                        }
-                    }
-                    FetcherState::FetchingConfig(token_id, svc_id) => {
-                        info!(
-                            self,
-                            "still fetching rules!? - token_id: {}, svc_id: {}", token_id, svc_id
-                        );
-                        unimplemented!()
-                    }
-                    FetcherState::ConfigFetched => {
-                        info!(self, "fetched rules");
-                        FetcherState::Inactive
-                    }
-                    FetcherState::FetchingConfigs(token_id) => {
-                        info!(self, "still fetching configs!? - token_id: {}", token_id);
-                        unimplemented!()
-                    }
-                    FetcherState::Error(_) => todo!(),
-                };
+                if let Some(services) = config.services() {
+                    let upstream = sys.upstream();
+                    let qs = format!("access_token={}", sys.token());
 
-                self.fetcher = new_state;
+                    self.fetcher.sort_unstable();
+
+                    for service in services {
+                        let idx = match self
+                            .fetcher
+                            .binary_search_by_key(&service.id(), |cf| cf.service_id())
+                        {
+                            Ok(idx) => idx,
+                            Err(idx) => {
+                                let cf = ConfigFetcher::new(
+                                    service.id().to_string(),
+                                    "production".to_string(),
+                                );
+                                self.fetcher.insert(idx, cf);
+                                idx
+                            }
+                        };
+                        let cf = self.fetcher.get(idx).unwrap();
+                        cf.call(self, upstream, qs.as_str());
+                    }
+                }
+
                 self.set_next_tick();
             }
         }
