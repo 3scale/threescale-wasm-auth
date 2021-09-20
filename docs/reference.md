@@ -556,7 +556,7 @@ Fields are as follows:
 * `usages`: Required. A list of `usage` objects. When the rule is matched, all `method`s with their
             `delta`s here will be added to the list of `method`s that will be sent to `3scale` for
             authorization and reporting. This object is so simple we'll embed its fields here:
-            `name` refers to the `method` name to report, and `delta` refers to how much to increase
+            `name` refers to the `method` system name to report, and `delta` refers to how much to increase
             that `method` by. Both fields are required.
 * `last`: Optional boolean, defaulting to `false`. Whether the successful matching of this rule
           should stop the evaluation of additional mapping rules.
@@ -566,7 +566,7 @@ mapping_rules:
   - method: GET
     pattern: /
     usages:
-      - name: Hits
+      - name: hits
         delta: 1
   - method: GET
     pattern: /products/
