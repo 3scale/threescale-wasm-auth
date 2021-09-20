@@ -8,6 +8,6 @@ mod usage;
 pub use backend::Backend;
 pub use credentials::{Credentials, Error as CredentialsError};
 pub use mapping_rule::MappingRule;
-pub use service::Service;
+pub use service::{Environment, Service};
 pub use system::System;
 pub use usage::Usage;
