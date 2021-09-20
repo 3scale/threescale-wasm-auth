@@ -73,7 +73,9 @@ mod test {
 
     use threescalers::http::mapping_rule::{Method, RestRule};
 
-    use crate::threescale::{Backend, Credentials, MappingRule, Service, System, Usage};
+    use crate::threescale::{
+        Backend, Credentials, Environment, MappingRule, Service, System, Usage,
+    };
     use crate::upstream::Upstream;
     use crate::util::glob::GlobPatternSet;
     use crate::util::serde::ErrorLocation;
@@ -125,6 +127,7 @@ mod test {
             services: Some(vec![Service {
                 id: "2555417834780".into(),
                 token: "service_token".into(),
+                environment: Environment::Production,
                 authorities: GlobPatternSet::new(
                     [
                         "ingress",
