@@ -4,8 +4,37 @@ use super::{Credentials, MappingRule};
 use crate::util::glob::GlobPatternSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Environment {
+    Production,
+    Staging,
+    Sandbox,
+    #[serde(other)]
+    Unknown,
+}
+
+impl Environment {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Production => "production",
+            Self::Staging => "staging",
+            Self::Sandbox => "sandbox",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::Production
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
     pub id: String,
+    #[serde(default)]
+    pub environment: Environment,
     pub token: String,
     #[serde(default)]
     pub authorities: GlobPatternSet,
@@ -16,6 +45,13 @@ pub struct Service {
 impl Service {
     pub fn id(&self) -> &str {
         self.id.as_str()
+    }
+
+    // Allow dead code until we have the logic asking for the environment
+    // in the configuration retrieval subsystem.
+    #[allow(dead_code)]
+    pub fn environment(&self) -> &str {
+        self.environment.as_str()
     }
 
     pub fn token(&self) -> &str {
