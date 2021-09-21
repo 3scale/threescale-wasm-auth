@@ -111,7 +111,11 @@ impl Context for RootAuthThreescale {
                 return;
             }
             Some(fetcher) => {
-                fetcher.response(self, token_id);
+                if let Some(sys) = self.get_system_config() {
+                    let upstream = sys.upstream();
+                    let qs_params = format!("access_token={}", sys.token());
+                    fetcher.response(self, token_id, upstream, qs_params.as_str());
+                }
             }
         };
     }
@@ -259,7 +263,7 @@ impl RootContext for RootAuthThreescale {
                             Err(idx) => {
                                 let cf = ConfigFetcher::new(
                                     service.id().to_string(),
-                                    "production".to_string(),
+                                    service.environment(),
                                 );
                                 self.fetcher.insert(idx, cf);
                                 idx

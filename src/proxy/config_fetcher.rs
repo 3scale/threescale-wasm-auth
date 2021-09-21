@@ -1,6 +1,11 @@
+use crate::threescale::Environment;
 use crate::upstream::Upstream;
 
 use super::root_context::RootAuthThreescale;
+
+mod thread_local;
+pub use thread_local::fetcher_with;
+pub use thread_local::Fetcher;
 
 use proxy_wasm::traits::RootContext;
 use straitjacket::api::v0::service::proxy;
@@ -10,8 +15,10 @@ use straitjacket::resources::http::endpoint::Endpoint;
 pub enum Error {
     #[error("config fetching failed")]
     Failed,
-    #[error("client error")]
-    Threescalers(#[from] threescalers::Error),
+    #[error("client error: {0}")]
+    Client(#[from] threescalers::Error),
+    #[error("endpoint error: {0}")]
+    Endpoint(Box<dyn std::error::Error + Send + Sync>),
     #[error("error: {0}")]
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
@@ -38,7 +45,7 @@ impl FetcherState {
 #[derive(Debug)]
 pub struct ConfigFetcher {
     service_id: String,
-    environment: String,
+    environment: Environment,
     state: FetcherState,
 }
 
@@ -67,7 +74,7 @@ impl ConfigFetcher {
     const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
         proxy::mapping_rules::LIST;
 
-    pub fn new(service_id: String, environment: String) -> Self {
+    pub fn new(service_id: String, environment: Environment) -> Self {
         Self {
             service_id,
             environment,
@@ -83,49 +90,60 @@ impl ConfigFetcher {
         self.service_id.as_str()
     }
 
+    pub fn fetch_endpoint<E>(
+        &self,
+        ctx: &RootAuthThreescale,
+        upstream: &Upstream,
+        qs_params: &str,
+        endpoint: Endpoint<'_, '_, E>,
+        args: &[&str],
+    ) -> Result<u32, Error> {
+        let method = endpoint.method().as_str();
+        let path = endpoint.path(args);
+        if let Ok(path) = path {
+            match upstream.call(
+                ctx,
+                path.as_str(),
+                method,
+                vec![],
+                Some(qs_params),
+                None,
+                None,
+                None,
+            ) {
+                Ok(call_id) => Ok(call_id),
+                Err(e) => {
+                    error!(
+                        ctx,
+                        "failed to initiate fetch of configuration data for {}: {}",
+                        self.service_id.as_str(),
+                        e
+                    );
+                    Err(Error::Failed)
+                }
+            }
+        } else {
+            critical!(
+                ctx,
+                "failed to obtain path for endpoint: {}",
+                path.unwrap_err()
+            );
+            Err(Error::Failed)
+        }
+    }
+
     pub fn call(&mut self, ctx: &RootAuthThreescale, upstream: &Upstream, qs_params: &str) -> u32 {
         let new_state = match &self.state {
             FetcherState::Inactive | FetcherState::Error(_) => {
-                let config_ep = Self::CONFIG_EP;
-                let method = config_ep.method().as_str();
-                let path =
-                    Self::CONFIG_EP.path(&[self.service_id.as_str(), self.environment.as_str()]);
-                let state = if let Ok(path) = path {
-                    match upstream.call(
-                        ctx,
-                        path.as_str(),
-                        method,
-                        vec![],
-                        Some(qs_params),
-                        None,
-                        None,
-                        None,
-                    ) {
-                        Ok(call_id) => {
-                            debug!(
-                                ctx,
-                                "fetching config for service {}",
-                                self.service_id.as_str()
-                            );
-                            FetcherState::FetchingConfig(call_id)
-                        }
-                        Err(e) => {
-                            error!(
-                                ctx,
-                                "failed to initiate fetch of config for service {}: {}",
-                                self.service_id.as_str(),
-                                e
-                            );
-                            FetcherState::Error(e.into())
-                        }
-                    }
-                } else {
-                    critical!(
-                        ctx,
-                        "failed to obtain path for latest config endpoint: {}",
-                        path.unwrap_err()
-                    );
-                    FetcherState::Inactive
+                let state = match self.fetch_endpoint(
+                    ctx,
+                    upstream,
+                    qs_params,
+                    Self::CONFIG_EP,
+                    &[self.service_id.as_str(), self.environment.as_str()],
+                ) {
+                    Ok(call_id) => FetcherState::FetchingConfig(call_id),
+                    Err(e) => FetcherState::Error(e.into()),
                 };
                 state.into()
             }
@@ -147,8 +165,6 @@ impl ConfigFetcher {
                 );
                 FetcherState::FetchingRules(*token_id).into()
             }
-            //FetcherState::ConfigFetched(_) => todo!(),
-            //FetcherState::RulesFetched(_) => todo!(),
             _ => {
                 info!(ctx, "data has been retrieved");
                 None
@@ -161,7 +177,25 @@ impl ConfigFetcher {
         42
     }
 
-    pub fn response(&mut self, ctx: &RootAuthThreescale, token_id: u32) -> u32 {
+    fn parsing_error(ctx: &RootAuthThreescale, body: &str, e: Box<dyn std::error::Error>) {
+        error!(ctx, "failed to parse config: {}", e);
+        match serde_json::from_str::<serde_json::Value>(body.as_ref()).and_then(|json_val| {
+            serde_json::to_string_pretty(&json_val).or_else(|_| serde_json::to_string(&json_val))
+        }) {
+            Ok(json) => error!(ctx, "JSON error response:\n{}", json),
+            Err(_) => {
+                error!(ctx, "RAW error response:\n{}", body)
+            }
+        }
+    }
+
+    pub fn response(
+        &mut self,
+        ctx: &RootAuthThreescale,
+        token_id: u32,
+        upstream: &Upstream,
+        qs_params: &str,
+    ) -> u32 {
         match self.state {
             FetcherState::Inactive => {
                 // This could be due to receiving a new configuration mid-flight of a system request
@@ -181,37 +215,44 @@ impl ConfigFetcher {
                     "received response for config for service {}",
                     self.service_id()
                 );
-                match (ctx as &dyn RootContext).get_http_call_response_body(0, usize::MAX) {
+                let config = match (ctx as &dyn RootContext)
+                    .get_http_call_response_body(0, usize::MAX)
+                {
                     Some(body) => {
-                        info!(ctx, "got config!");
+                        info!(
+                            ctx,
+                            "got config response for service {}!",
+                            self.service_id()
+                        );
                         let configep = straitjacket::api::v0::service::proxy::configs::LATEST;
                         let body_s = String::from_utf8_lossy(body.as_slice());
-                        let res = configep.parse_str(body_s.as_ref());
-                        match res {
-                            Ok(config) => {
-                                info!(ctx, "config: {:#?}", config);
-                                self.state = FetcherState::ConfigFetched(config);
-                            }
-                            Err(e) => {
-                                error!(ctx, "failed to parse config: {}", e);
-                                match serde_json::from_str::<serde_json::Value>(body_s.as_ref())
-                                    .and_then(|json_val| {
-                                        serde_json::to_string_pretty(&json_val)
-                                            .or_else(|_| serde_json::to_string(&json_val))
-                                    }) {
-                                    Ok(json) => error!(ctx, "JSON error response:\n{}", json),
-                                    Err(_) => {
-                                        error!(ctx, "RAW error response:\n{}", body_s.as_ref())
-                                    }
-                                }
-                                // TODO FIXME Try to retrieve mapping rules at the very least.
-                            }
-                        }
+                        configep.parse_str(body_s.as_ref()).map_err(|e| {
+                            Self::parsing_error(ctx, body_s.as_ref(), e);
+                            Error::Failed
+                        })
                     }
                     None => {
-                        info!(ctx, "FAILED TO GET list of mapping rules!");
+                        info!(ctx, "response contained no body - failed to get configuration for service {}", self.service_id());
+                        Err(Error::Failed)
                     }
-                }
+                };
+                let state = match config {
+                    Ok(config) => FetcherState::ConfigFetched(config),
+                    Err(e) => {
+                        // Try to fetch rules
+                        match self.fetch_endpoint(
+                            ctx,
+                            upstream,
+                            qs_params,
+                            Self::RULES_EP,
+                            &[self.service_id.as_str()],
+                        ) {
+                            Ok(call_id) => FetcherState::FetchingRules(call_id),
+                            Err(e) => FetcherState::Error(e.into()),
+                        }
+                    }
+                };
+                self.state = state;
             }
             FetcherState::ConfigFetched(ref _cfg) => {
                 warn!(ctx, "config already fetched but got a response !?");
@@ -263,31 +304,5 @@ impl ConfigFetcher {
             FetcherState::Error(_) => todo!(),
         }
         0
-    }
-}
-
-mod imp {
-    use std::cell::RefCell;
-    use std::sync::Once;
-
-    use super::*;
-
-    thread_local! {
-        static FETCHER: RefCell<Option<Vec<ConfigFetcher>>> = RefCell::new(None);
-        static FETCHER_INIT: Once = Once::new();
-    }
-
-    pub(super) fn initialize() -> Result<(), Error> {
-        FETCHER_INIT.with(|once| {
-            let mut res = Ok(());
-            once.call_once(|| {
-                res = FETCHER.with(|fetcher| {
-                    let new_fetcher: Vec<ConfigFetcher> = vec![];
-                    let _ = fetcher.borrow_mut().replace(new_fetcher);
-                    Ok(())
-                });
-            });
-            res
-        })
     }
 }
