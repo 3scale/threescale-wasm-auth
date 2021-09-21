@@ -6,6 +6,7 @@ use std::time::SystemTime;
 
 use crate::configuration::Configuration;
 use crate::log::IdentLogger;
+use crate::proxy::config_fetcher::{self, Fetcher};
 use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
 
@@ -21,8 +22,9 @@ pub(super) struct RootAuthThreescale {
     context_id: u32,
     id: u32,
     log_id: String,
-    fetcher: Vec<ConfigFetcher>,
     config_deadline: SystemTime,
+    // XXX TODO FIXME this is currently not necessary
+    fetcher: Fetcher,
 }
 
 impl RootAuthThreescale {
@@ -34,7 +36,7 @@ impl RootAuthThreescale {
             context_id: 0,
             id: 0,
             log_id: String::new(),
-            fetcher: vec![],
+            fetcher: Fetcher,
             config_deadline: std::time::UNIX_EPOCH,
         }
     }
@@ -70,6 +72,9 @@ impl Context for RootAuthThreescale {
             }
         };
 
+        // Initialize the config fetcher
+        self.fetcher = config_fetcher::fetcher_init();
+
         self.id = self.rng.next_u32();
         write!(
             &mut self.log_id,
@@ -101,23 +106,23 @@ impl Context for RootAuthThreescale {
         _body_size: usize,
         _num_trailers: usize,
     ) {
-        let cfg_fetcher = self
-            .fetcher
-            .iter_mut()
-            .find(|f| f.token_id().map(|id| id == token_id).unwrap_or(false));
-        match cfg_fetcher {
-            None => {
-                error!(self, "config fetcher for token id {} not found!", token_id);
-                return;
-            }
-            Some(fetcher) => {
-                if let Some(sys) = self.get_system_config() {
-                    let upstream = sys.upstream();
-                    let qs_params = format!("access_token={}", sys.token());
-                    fetcher.response(self, token_id, upstream, qs_params.as_str());
+        if let Some(sys) = self.get_system_config() {
+            let upstream = sys.upstream();
+            let qs_params = format!("access_token={}", sys.token());
+            Fetcher::with(|vcf| {
+                match vcf
+                    .iter_mut()
+                    .find(|cf| cf.token_id().map(|t| t == token_id).unwrap_or(false))
+                {
+                    Some(cf) => {
+                        let _a = cf.response(self, token_id, upstream, qs_params.as_str());
+                    }
+                    None => {
+                        error!(self, "config fetcher for token id {} not found!", token_id);
+                    }
                 }
-            }
-        };
+            });
+        }
     }
 }
 
@@ -217,7 +222,7 @@ impl RootContext for RootAuthThreescale {
         );
 
         // cancel any previous work updating configurations
-        self.fetcher = vec![];
+        Fetcher::clear();
 
         let _ = self.set_next_tick();
 
@@ -252,26 +257,26 @@ impl RootContext for RootAuthThreescale {
                     let upstream = sys.upstream();
                     let qs = format!("access_token={}", sys.token());
 
-                    self.fetcher.sort_unstable();
-
-                    for service in services {
-                        let idx = match self
-                            .fetcher
-                            .binary_search_by_key(&service.id(), |cf| cf.service_id())
-                        {
-                            Ok(idx) => idx,
-                            Err(idx) => {
-                                let cf = ConfigFetcher::new(
-                                    service.id().to_string(),
-                                    service.environment(),
-                                );
-                                self.fetcher.insert(idx, cf);
-                                idx
-                            }
-                        };
-                        let cf = self.fetcher.get(idx).unwrap();
-                        cf.call(self, upstream, qs.as_str());
-                    }
+                    Fetcher::with(|vcf| {
+                        vcf.sort_unstable();
+                        for service in services {
+                            let idx = match vcf
+                                .binary_search_by_key(&service.id(), |cf| cf.service_id())
+                            {
+                                Ok(idx) => idx,
+                                Err(idx) => {
+                                    let cf = ConfigFetcher::new(
+                                        service.id().to_string(),
+                                        service.environment(),
+                                    );
+                                    vcf.insert(idx, cf);
+                                    idx
+                                }
+                            };
+                            let cf = vcf.get_mut(idx).unwrap();
+                            cf.call(self, upstream, qs.as_str());
+                        }
+                    });
                 }
 
                 self.set_next_tick();
