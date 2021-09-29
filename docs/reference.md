@@ -641,7 +641,7 @@ credentials:
 #### Authorization header
 
 A request might also include these in an `Authorization` header. The resolution here will assign the
-`application key` if there are at least two values as output, so we'll take advantage of that.
+`application key` if there is one or two output at the end.
 
 The `Authorization` header specifies a value with the type of authorization and then its value
 encoded as [`Base64`](https://en.wikipedia.org/wiki/Base64) in a URL-safe way. This means we
@@ -671,18 +671,21 @@ credentials:
           - base64_urlsafe
           - split:
               max: 2
-  TODO: Add also app_key
+  app_key:
+    - header:
+        keys:
+          - app_key
 ```
 
 This will look into the headers for an `Authorization` one, take its string value and split it by
 space, checking at least two values were generated for credential type and credential itself, and
 dropping the credential type. Then it will decode the second value containing the data we are
 interested in, and we'll split it by the `:` character to have an operations' stack including first
-the `app_id`, then the `app_key`, if it exists.
+the `app_id`, then the `app_key`, if it exists. If `app_key` does not exist in the authorization header then its specific sources are checked, i.e., header with key `app_key` in this case.
 
 You might want to augment this example with extra conditions: let's now ensure you only allow `Basic`
 authorizations, and `app_id` being either `aladdin` or `admin`, or any `app_id` with at least 8
-characters in length. Additionally, the `app_key` should be non-empty but smaller than 64 characters.
+characters in length. Additionally the `app_key` should be non-empty but smaller than 64 characters.
 
 Here's one way to go about it:
 
