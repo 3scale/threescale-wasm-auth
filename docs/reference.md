@@ -604,21 +604,43 @@ specific use cases. Note that you can combine them all - the only caveat is that
 multiple `source` objects with their own `lookup queries`, they are evaluated in order until one of
 them is successfully resolved.
 
-### API key (user_key) in query string parameters
+### API key (user_key)
 
-This looks up a `user_key` in a query string parameter named `api_key`.
+This looks up a `user_key` in a query string parameter or header of the same name.
 
 ```yaml
 credentials:
   user_key:
     - query_string:
         keys:
-          - api_key
+          - user_key
+    - header:
+        keys:
+          - user_key
 ```
+### Application ID and Key
+This looks up a `app_key` and `app_id` in a query or headers.
 
-### Application ID and Key in Authorization header
+```yaml
+credentials:
+  app_id:
+    - header:
+        keys:
+          - app_id
+    - query_string:
+        keys:
+          - app_id
+  app_key:
+    - header:
+        keys:
+          - app_key
+    - query_string:
+        keys:
+          - app_key
+```
+#### Authorization header
 
-A request might include these in an `Authorization` header. The resolution here will assign the
+A request might also include these in an `Authorization` header. The resolution here will assign the
 `application key` if there are at least two values as output, so we'll take advantage of that.
 
 The `Authorization` header specifies a value with the type of authorization and then its value
@@ -649,6 +671,7 @@ credentials:
           - base64_urlsafe
           - split:
               max: 2
+  TODO: Add also app_key
 ```
 
 This will look into the headers for an `Authorization` one, take its string value and split it by
@@ -659,7 +682,7 @@ the `app_id`, then the `app_key`, if it exists.
 
 You might want to augment this example with extra conditions: let's now ensure you only allow `Basic`
 authorizations, and `app_id` being either `aladdin` or `admin`, or any `app_id` with at least 8
-characters in length. Additionally the `app_key` should be non-empty but smaller than 64 characters.
+characters in length. Additionally, the `app_key` should be non-empty but smaller than 64 characters.
 
 Here's one way to go about it:
 
