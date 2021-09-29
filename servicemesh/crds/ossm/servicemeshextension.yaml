@@ -31,70 +31,30 @@ spec:
       token: service_token
       authorities:
       - "*"
-      credentials:
-        app_id:
-        - header:
-            keys:
-            - x-app-id
-        - query_string:
-            keys:
-            - app_id
-            - application_id
-        - filter:
-            path:
-            - envoy.filters.http.jwt_authn
-            - '0'
-            keys:
-            - azp
-            - aud
-        - header:
-            keys:
-            - x-jwt-payload
-            ops:
-            - decode: base64_urlsafe
-            - format:
-                json:
-                  path: []
-                  keys:
-                  - azp
-                  - aud
-        - header:
-            keys:
-            - authorization
-            ops:
-            - format:
-                joined:
-                  separator: " "
-                  max: 2
-                  indexes:
-                  - 1
-            - decode: base64_urlsafe
-            - format:
-                joined:
-                  separator: ":"
-                  max: 2
-                  indexes:
-                  - 0
-                  - 1
-        app_key:
-        - header:
-            keys:
-            - x-app-key
-        - query_string:
-            keys:
-            - app_key
-            - application_key
-        user_key:
-        - query_string:
-            keys:
-            - api_key
-            ops:
-            - format:
-                joined:
-                  separator: ":"
-                  max: 2
-                  indexes:
-                  - 0
+        credentials:
+          app_id:
+            - header:
+                keys:
+                  - app_id
+            - query_string:
+                keys:
+                  - app_id
+                  - application_id
+          app_key:
+            - header:
+                keys:
+                  - app_key
+            - query_string:
+                keys:
+                  - app_key
+                  - application_key
+          user_key:
+            - query_string:
+                keys:
+                  - user_key
+            - header:
+                keys:
+                  - user_key
       mapping_rules:
       - method: GET
         pattern: "/"
