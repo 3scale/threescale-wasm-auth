@@ -364,7 +364,7 @@ Each element in the `services` array represents a `3scale` service. The fields a
 
 * `id`: Required. The `3scale` service identifier for this service.
 * `token`: Required. The `3scale` service token to be used to authenticate this service against
-           Apisonator.
+           Apisonator. This token can be found in the proxy configuration for your service in Porta or can be retrieved from Porta with this command `curl https://<porta_host>/admin/api/services/<service_id>/proxy/configs/production/latest.json?access_token=<access_token>" | jq '.proxy_config.content.backend_authentication_value`.
 * `environment`: Optional, defaults to `production`. The `3scale` environment of this service.
 * `authorities`: Required. An array of strings, each one representing the [`Authority`](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)
                  of a `URL` to match. These strings do accept [`glob patterns`](https://en.wikipedia.org/wiki/Glob_%28programming%29)
