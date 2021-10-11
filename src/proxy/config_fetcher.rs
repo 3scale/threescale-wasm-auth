@@ -88,49 +88,60 @@ impl ConfigFetcher {
         self.service_id.as_str()
     }
 
+    pub fn fetch_endpoint<E>(
+        &self,
+        ctx: &RootAuthThreescale,
+        upstream: &Upstream,
+        qs_params: &str,
+        endpoint: Endpoint<'_, '_, E>,
+        args: &[&str],
+    ) -> Result<u32, Error> {
+        let method = endpoint.method().as_str();
+        let path = endpoint.path(args);
+        if let Ok(path) = path {
+            match upstream.call(
+                ctx,
+                path.as_str(),
+                method,
+                vec![],
+                Some(qs_params),
+                None,
+                None,
+                None,
+            ) {
+                Ok(call_id) => Ok(call_id),
+                Err(e) => {
+                    error!(
+                        ctx,
+                        "failed to initiate fetch of configuration data for {}: {}",
+                        self.service_id.as_str(),
+                        e
+                    );
+                    Err(Error::Failed)
+                }
+            }
+        } else {
+            critical!(
+                ctx,
+                "failed to obtain path for endpoint: {}",
+                path.unwrap_err()
+            );
+            Err(Error::Failed)
+        }
+    }
+
     pub fn call(&mut self, ctx: &RootAuthThreescale, upstream: &Upstream, qs_params: &str) -> u32 {
         let new_state = match &self.state {
             FetcherState::Inactive | FetcherState::Error(_) => {
-                let config_ep = Self::CONFIG_EP;
-                let method = config_ep.method().as_str();
-                let path =
-                    Self::CONFIG_EP.path(&[self.service_id.as_str(), self.environment.as_str()]);
-                let state = if let Ok(path) = path {
-                    match upstream.call(
-                        ctx,
-                        path.as_str(),
-                        method,
-                        vec![],
-                        Some(qs_params),
-                        None,
-                        None,
-                        None,
-                    ) {
-                        Ok(call_id) => {
-                            debug!(
-                                ctx,
-                                "fetching config for service {}",
-                                self.service_id.as_str()
-                            );
-                            FetcherState::FetchingConfig(call_id)
-                        }
-                        Err(e) => {
-                            error!(
-                                ctx,
-                                "failed to initiate fetch of config for service {}: {}",
-                                self.service_id.as_str(),
-                                e
-                            );
-                            FetcherState::Error(e.into())
-                        }
-                    }
-                } else {
-                    critical!(
-                        ctx,
-                        "failed to obtain path for latest config endpoint: {}",
-                        path.unwrap_err()
-                    );
-                    FetcherState::Inactive
+                let state = match self.fetch_endpoint(
+                    ctx,
+                    upstream,
+                    qs_params,
+                    Self::CONFIG_EP,
+                    &[self.service_id.as_str(), self.environment.as_str()],
+                ) {
+                    Ok(call_id) => FetcherState::FetchingConfig(call_id),
+                    Err(e) => FetcherState::Error(e.into()),
                 };
                 state.into()
             }
