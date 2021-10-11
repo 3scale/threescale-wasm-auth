@@ -7,10 +7,11 @@ use straitjacket::resources::http::endpoint::Endpoint;
 
 pub enum FetcherState {
     Inactive,
-    FetchingConfig(u32, String),
-    ConfigFetched,
-    FetchingConfigs(u32),
-    Error(Box<dyn std::error::Error + Send + Sync>),
+    FetchingConfig(u32),
+    ConfigFetched(proxy::configs::Config),
+    FetchingRules(u32),
+    RulesFetched(proxy::mapping_rules::MappingRules),
+    Error(Error),
 }
 
 pub struct ConfigFetcher {
