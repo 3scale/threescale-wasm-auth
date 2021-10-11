@@ -6,11 +6,13 @@ use std::time::SystemTime;
 
 use crate::configuration::Configuration;
 use crate::log::IdentLogger;
-use crate::proxy::config_fetcher::{self, Fetcher};
+use crate::proxy::config_fetcher::{self, ConfigFetcher, Fetcher, FetcherState};
+use crate::threescale::{MappingRule, Usage};
 use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
 
-use super::config_fetcher::ConfigFetcher;
+use threescalers::http::mapping_rule::{Method, RestRule};
+
 use super::http_context::HttpAuthThreescale;
 
 const MIN_SYNC: u64 = 20;
@@ -106,16 +108,86 @@ impl Context for RootAuthThreescale {
         if let Some(sys) = self.get_system_config() {
             let upstream = sys.upstream();
             let qs_params = format!("access_token={}", sys.token());
+
+            let idx = Fetcher::with(|vcf| {
+                vcf.iter_mut()
+                    .position(|cf| cf.token_id().map(|t| t == token_id).unwrap_or(false))
+            });
+
+            if idx.is_none() {
+                error!(self, "config fetcher for token id {} not found!", token_id);
+                return;
+            }
+
+            let idx = idx.unwrap();
             Fetcher::with(|vcf| {
-                match vcf
-                    .iter_mut()
-                    .find(|cf| cf.token_id().map(|t| t == token_id).unwrap_or(false))
-                {
-                    Some(cf) => {
-                        let _a = cf.response(self, token_id, upstream, qs_params.as_str());
+                let cf = vcf.get_mut(idx).unwrap();
+                let _a = cf.response(self, token_id, upstream, qs_params.as_str());
+            });
+
+            // update mapping rules
+            info!(self, "updating mapping rules using fetched config");
+            Fetcher::with(|vcf| {
+                let cf = vcf.get_mut(idx).unwrap();
+                let mut rules_updated: bool = false;
+
+                let config = self.configuration.as_mut().map(|config| config.get_mut());
+                let services_op = config.map(|config| config.services.as_mut()).flatten();
+                let services = services_op.unwrap(); // cannot make a callout without services
+
+                if let Some(service) = services.iter_mut().find(|sv| sv.id() == cf.service_id()) {
+                    let mut latest_service = cf.service().clone();
+                    match cf.state() {
+                        FetcherState::ConfigFetched(proxy_config) => {
+                            let proxy_config = proxy_config.get_inner().item();
+                            let proxy_rules = proxy_config.content().proxy().mapping_rules();
+
+                            for proxy_rule in proxy_rules {
+                                let metric_name = proxy_rule.metric_system_name.clone();
+
+                                latest_service.mapping_rules.push(MappingRule {
+                                    rule: RestRule::new(
+                                        Method::from(proxy_rule.http_method.as_ref()),
+                                        proxy_rule.pattern.clone(),
+                                    )
+                                    .unwrap(),
+                                    usages: vec![Usage {
+                                        name: metric_name.unwrap_or_else(|| "Hits".into()),
+                                        delta: proxy_rule.delta as i64,
+                                    }],
+                                    last: proxy_rule.last,
+                                })
+                            }
+                            rules_updated = true;
+                        }
+                        FetcherState::RulesFetched(ref rules) => {
+                            let mapping_rules = rules.get_inner();
+
+                            for mapping_rule_tag in mapping_rules {
+                                let mapping_rule_inner = mapping_rule_tag.get_inner();
+                                let mapping_rule = mapping_rule_inner.item();
+                                let metric_name = mapping_rule.metric_system_name.clone();
+
+                                latest_service.mapping_rules.push(MappingRule {
+                                    rule: RestRule::new(
+                                        Method::from(mapping_rule.http_method.as_ref()),
+                                        mapping_rule.pattern.clone(),
+                                    )
+                                    .unwrap(),
+                                    usages: vec![Usage {
+                                        name: metric_name.unwrap_or_else(|| "Hits".into()),
+                                        delta: mapping_rule.delta as i64,
+                                    }],
+                                    last: mapping_rule.last,
+                                })
+                            }
+                            rules_updated = true;
+                        }
+                        _ => (),
                     }
-                    None => {
-                        error!(self, "config fetcher for token id {} not found!", token_id);
+                    if rules_updated {
+                        *service = latest_service;
+                        cf.set_state(FetcherState::Inactive);
                     }
                 }
             });
