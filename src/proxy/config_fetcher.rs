@@ -15,8 +15,10 @@ use straitjacket::resources::http::endpoint::Endpoint;
 pub enum Error {
     #[error("config fetching failed")]
     Failed,
-    #[error("client error")]
-    Threescalers(#[from] threescalers::Error),
+    #[error("client error: {0}")]
+    Client(#[from] threescalers::Error),
+    #[error("endpoint error: {0}")]
+    Endpoint(Box<dyn std::error::Error + Send + Sync>),
     #[error("error: {0}")]
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
@@ -163,8 +165,6 @@ impl ConfigFetcher {
                 );
                 FetcherState::FetchingRules(*token_id).into()
             }
-            //FetcherState::ConfigFetched(_) => todo!(),
-            //FetcherState::RulesFetched(_) => todo!(),
             _ => {
                 info!(ctx, "data has been retrieved");
                 None
@@ -215,37 +215,44 @@ impl ConfigFetcher {
                     "received response for config for service {}",
                     self.service_id()
                 );
-                match (ctx as &dyn RootContext).get_http_call_response_body(0, usize::MAX) {
+                let config = match (ctx as &dyn RootContext)
+                    .get_http_call_response_body(0, usize::MAX)
+                {
                     Some(body) => {
-                        info!(ctx, "got config!");
+                        info!(
+                            ctx,
+                            "got config response for service {}!",
+                            self.service_id()
+                        );
                         let configep = straitjacket::api::v0::service::proxy::configs::LATEST;
                         let body_s = String::from_utf8_lossy(body.as_slice());
-                        let res = configep.parse_str(body_s.as_ref());
-                        match res {
-                            Ok(config) => {
-                                info!(ctx, "config: {:#?}", config);
-                                self.state = FetcherState::ConfigFetched(config);
-                            }
-                            Err(e) => {
-                                error!(ctx, "failed to parse config: {}", e);
-                                match serde_json::from_str::<serde_json::Value>(body_s.as_ref())
-                                    .and_then(|json_val| {
-                                        serde_json::to_string_pretty(&json_val)
-                                            .or_else(|_| serde_json::to_string(&json_val))
-                                    }) {
-                                    Ok(json) => error!(ctx, "JSON error response:\n{}", json),
-                                    Err(_) => {
-                                        error!(ctx, "RAW error response:\n{}", body_s.as_ref())
-                                    }
-                                }
-                                // TODO FIXME Try to retrieve mapping rules at the very least.
-                            }
-                        }
+                        configep.parse_str(body_s.as_ref()).map_err(|e| {
+                            Self::parsing_error(ctx, body_s.as_ref(), e);
+                            Error::Failed
+                        })
                     }
                     None => {
-                        info!(ctx, "FAILED TO GET list of mapping rules!");
+                        info!(ctx, "response contained no body - failed to get configuration for service {}", self.service_id());
+                        Err(Error::Failed)
                     }
-                }
+                };
+                let state = match config {
+                    Ok(config) => FetcherState::ConfigFetched(config),
+                    Err(e) => {
+                        // Try to fetch rules
+                        match self.fetch_endpoint(
+                            ctx,
+                            upstream,
+                            qs_params,
+                            Self::RULES_EP,
+                            &[self.service_id.as_str()],
+                        ) {
+                            Ok(call_id) => FetcherState::FetchingRules(call_id),
+                            Err(e) => FetcherState::Error(e.into()),
+                        }
+                    }
+                };
+                self.state = state;
             }
             FetcherState::ConfigFetched(ref _cfg) => {
                 warn!(ctx, "config already fetched but got a response !?");
@@ -297,31 +304,5 @@ impl ConfigFetcher {
             FetcherState::Error(_) => todo!(),
         }
         0
-    }
-}
-
-mod imp {
-    use std::cell::RefCell;
-    use std::sync::Once;
-
-    use super::*;
-
-    thread_local! {
-        static FETCHER: RefCell<Option<Vec<ConfigFetcher>>> = RefCell::new(None);
-        static FETCHER_INIT: Once = Once::new();
-    }
-
-    pub(super) fn initialize() -> Result<(), Error> {
-        FETCHER_INIT.with(|once| {
-            let mut res = Ok(());
-            once.call_once(|| {
-                res = FETCHER.with(|fetcher| {
-                    let new_fetcher: Vec<ConfigFetcher> = vec![];
-                    let _ = fetcher.borrow_mut().replace(new_fetcher);
-                    Ok(())
-                });
-            });
-            res
-        })
     }
 }
