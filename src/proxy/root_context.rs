@@ -263,7 +263,7 @@ impl RootContext for RootAuthThreescale {
                             Err(idx) => {
                                 let cf = ConfigFetcher::new(
                                     service.id().to_string(),
-                                    "production".to_string(),
+                                    service.environment(),
                                 );
                                 self.fetcher.insert(idx, cf);
                                 idx
