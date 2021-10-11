@@ -26,7 +26,7 @@ pub enum Error {
 pub enum FetcherState {
     Inactive,
     FetchingConfig(u32),
-    ConfigFetched(proxy::configs::ProxyConfig),
+    ConfigFetched(Box<proxy::configs::ProxyConfig>),
     FetchingRules(u32),
     RulesFetched(proxy::mapping_rules::MappingRules),
     Error(Error),
@@ -256,7 +256,7 @@ impl ConfigFetcher {
                     }
                 };
                 let state = match config {
-                    Ok(config) => FetcherState::ConfigFetched(config),
+                    Ok(config) => FetcherState::ConfigFetched(Box::new(config)),
                     Err(_e) => {
                         // Try to fetch rules
                         match self.fetch_endpoint(
