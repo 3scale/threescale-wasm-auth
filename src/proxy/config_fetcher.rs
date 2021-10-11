@@ -2,6 +2,10 @@ use crate::upstream::Upstream;
 
 use super::root_context::RootAuthThreescale;
 
+mod thread_local;
+pub use thread_local::fetcher_with;
+pub use thread_local::Fetcher;
+
 use proxy_wasm::traits::RootContext;
 use straitjacket::api::v0::service::proxy;
 use straitjacket::resources::http::endpoint::Endpoint;
