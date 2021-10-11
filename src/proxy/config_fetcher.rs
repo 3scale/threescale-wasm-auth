@@ -177,7 +177,25 @@ impl ConfigFetcher {
         42
     }
 
-    pub fn response(&mut self, ctx: &RootAuthThreescale, token_id: u32) -> u32 {
+    fn parsing_error(ctx: &RootAuthThreescale, body: &str, e: Box<dyn std::error::Error>) {
+        error!(ctx, "failed to parse config: {}", e);
+        match serde_json::from_str::<serde_json::Value>(body.as_ref()).and_then(|json_val| {
+            serde_json::to_string_pretty(&json_val).or_else(|_| serde_json::to_string(&json_val))
+        }) {
+            Ok(json) => error!(ctx, "JSON error response:\n{}", json),
+            Err(_) => {
+                error!(ctx, "RAW error response:\n{}", body)
+            }
+        }
+    }
+
+    pub fn response(
+        &mut self,
+        ctx: &RootAuthThreescale,
+        token_id: u32,
+        upstream: &Upstream,
+        qs_params: &str,
+    ) -> u32 {
         match self.state {
             FetcherState::Inactive => {
                 // This could be due to receiving a new configuration mid-flight of a system request
