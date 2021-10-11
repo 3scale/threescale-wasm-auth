@@ -1,3 +1,4 @@
+use crate::threescale::Environment;
 use crate::upstream::Upstream;
 
 use super::root_context::RootAuthThreescale;
@@ -42,7 +43,7 @@ impl FetcherState {
 #[derive(Debug)]
 pub struct ConfigFetcher {
     service_id: String,
-    environment: String,
+    environment: Environment,
     state: FetcherState,
 }
 
@@ -71,7 +72,7 @@ impl ConfigFetcher {
     const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
         proxy::mapping_rules::LIST;
 
-    pub fn new(service_id: String, environment: String) -> Self {
+    pub fn new(service_id: String, environment: Environment) -> Self {
         Self {
             service_id,
             environment,
