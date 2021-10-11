@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{Credentials, MappingRule};
 use crate::util::glob::GlobPatternSet;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Environment {
     Production,
@@ -50,8 +50,8 @@ impl Service {
     // Allow dead code until we have the logic asking for the environment
     // in the configuration retrieval subsystem.
     #[allow(dead_code)]
-    pub fn environment(&self) -> &str {
-        self.environment.as_str()
+    pub fn environment(&self) -> Environment {
+        self.environment
     }
 
     pub fn token(&self) -> &str {
