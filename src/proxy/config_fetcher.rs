@@ -26,7 +26,7 @@ pub enum Error {
 pub enum FetcherState {
     Inactive,
     FetchingConfig(u32),
-    ConfigFetched(proxy::configs::Config),
+    ConfigFetched(proxy::configs::ProxyConfig),
     FetchingRules(u32),
     RulesFetched(proxy::mapping_rules::MappingRules),
     Error(Error),
@@ -69,7 +69,8 @@ impl Ord for ConfigFetcher {
 }
 
 impl ConfigFetcher {
-    const CONFIG_EP: Endpoint<'static, 'static, proxy::configs::Config> = proxy::configs::LATEST;
+    const CONFIG_EP: Endpoint<'static, 'static, proxy::configs::ProxyConfig> =
+        proxy::configs::LATEST;
     const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
         proxy::mapping_rules::LIST;
 
