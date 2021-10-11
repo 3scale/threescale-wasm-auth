@@ -4,8 +4,7 @@ use crate::upstream::Upstream;
 use super::root_context::RootAuthThreescale;
 
 mod thread_local;
-pub use thread_local::fetcher_with;
-pub use thread_local::Fetcher;
+pub use thread_local::{fetcher_init, fetcher_init_fallible, Fetcher};
 
 use proxy_wasm::traits::RootContext;
 use straitjacket::api::v0::service::proxy;
@@ -17,8 +16,8 @@ pub enum Error {
     Failed,
     #[error("client error: {0}")]
     Client(#[from] threescalers::Error),
-    #[error("endpoint error: {0}")]
-    Endpoint(Box<dyn std::error::Error + Send + Sync>),
+    //#[error("endpoint error: {0}")]
+    //Endpoint(Box<dyn std::error::Error + Send + Sync>),
     #[error("error: {0}")]
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
@@ -90,7 +89,7 @@ impl ConfigFetcher {
         self.service_id.as_str()
     }
 
-    pub fn fetch_endpoint<E>(
+    pub(super) fn fetch_endpoint<E>(
         &self,
         ctx: &RootAuthThreescale,
         upstream: &Upstream,
@@ -132,7 +131,12 @@ impl ConfigFetcher {
         }
     }
 
-    pub fn call(&mut self, ctx: &RootAuthThreescale, upstream: &Upstream, qs_params: &str) -> u32 {
+    pub(super) fn call(
+        &mut self,
+        ctx: &RootAuthThreescale,
+        upstream: &Upstream,
+        qs_params: &str,
+    ) -> u32 {
         let new_state = match &self.state {
             FetcherState::Inactive | FetcherState::Error(_) => {
                 let state = match self.fetch_endpoint(
@@ -189,7 +193,7 @@ impl ConfigFetcher {
         }
     }
 
-    pub fn response(
+    pub(super) fn response(
         &mut self,
         ctx: &RootAuthThreescale,
         token_id: u32,
@@ -238,7 +242,7 @@ impl ConfigFetcher {
                 };
                 let state = match config {
                     Ok(config) => FetcherState::ConfigFetched(config),
-                    Err(e) => {
+                    Err(_e) => {
                         // Try to fetch rules
                         match self.fetch_endpoint(
                             ctx,
