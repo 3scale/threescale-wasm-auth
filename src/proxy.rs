@@ -1,5 +1,5 @@
 mod authrep;
-mod config_fetcher;
+pub mod config_fetcher;
 pub mod metadata;
 pub mod request_headers;
 
