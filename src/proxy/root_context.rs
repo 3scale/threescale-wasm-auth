@@ -111,29 +111,29 @@ impl Context for RootAuthThreescale {
                     "ignoring call response due to configuration fetcher being inactive"
                 );
             }
-            FetcherState::RulesFetched => {
-                warn!(self, "rules were already fetched but got a response !?");
+            FetcherState::ConfigFetched => {
+                warn!(self, "config already fetched but got a response !?");
             }
-            FetcherState::FetchingRules(call_id, svc_id) => {
+            FetcherState::FetchingConfig(call_id, svc_id) => {
                 if *call_id != token_id {
                     warn!(self, "seen a call response without the right token id");
                 }
-                debug!(self, "received response for rules for service {}", svc_id);
+                debug!(self, "received response for config for service {}", svc_id);
                 match self.get_http_call_response_body(0, usize::MAX) {
                     Some(body) => {
-                        info!(self, "got list of services!");
+                        info!(self, "got config!");
                         //let svclist = straitjacket::api::v0::service::LIST;
-                        let rulelist = straitjacket::api::v0::service::proxy::mapping_rules::LIST;
+                        let configep = straitjacket::api::v0::service::proxy::configs::LATEST;
                         let body_s = String::from_utf8_lossy(body.as_slice());
                         //let res = svclist.parse_str(body_s.as_ref());
-                        let res = rulelist.parse_str(body_s.as_ref());
+                        let res = configep.parse_str(body_s.as_ref());
                         match res {
-                            Ok(rules) => {
-                                info!(self, "rules: {:#?}", rules);
-                                self.fetcher = FetcherState::RulesFetched;
+                            Ok(config) => {
+                                info!(self, "config: {:#?}", config);
+                                self.fetcher = FetcherState::ConfigFetched;
                             }
                             Err(e) => {
-                                error!(self, "failed to parse list of rules: {}", e);
+                                error!(self, "failed to parse config: {}", e);
                                 match serde_json::from_str::<serde_json::Value>(body_s.as_ref())
                                     .and_then(|json_val| {
                                         serde_json::to_string_pretty(&json_val)
@@ -144,6 +144,7 @@ impl Context for RootAuthThreescale {
                                         error!(self, "RAW error response:\n{}", body_s.as_ref())
                                     }
                                 }
+                                // TODO FIXME Try to retrieve mapping rules at the very least.
                             }
                         }
                     }
@@ -314,7 +315,7 @@ impl RootContext for RootAuthThreescale {
                                     ) {
                                         Ok(call_id) => {
                                             debug!(self, "fetching rules list for service {}", svc_id);
-                                            FetcherState::FetchingRules(call_id, svc_id.to_string())
+                                            FetcherState::FetchingConfig(call_id, svc_id.to_string())
                                         }
                                         Err(e) => {
                                             error!(
@@ -338,14 +339,14 @@ impl RootContext for RootAuthThreescale {
                             FetcherState::Inactive
                         }
                     }
-                    FetcherState::FetchingRules(token_id, svc_id) => {
+                    FetcherState::FetchingConfig(token_id, svc_id) => {
                         info!(
                             self,
                             "still fetching rules!? - token_id: {}, svc_id: {}", token_id, svc_id
                         );
                         unimplemented!()
                     }
-                    FetcherState::RulesFetched => {
+                    FetcherState::ConfigFetched => {
                         info!(self, "fetched rules");
                         FetcherState::Inactive
                     }
