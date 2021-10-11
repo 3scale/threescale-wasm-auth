@@ -1,4 +1,4 @@
-use crate::threescale::Environment;
+use crate::threescale::{Environment, Service};
 use crate::upstream::Upstream;
 
 use super::root_context::RootAuthThreescale;
@@ -7,7 +7,7 @@ mod thread_local;
 pub use thread_local::{fetcher_init, fetcher_init_fallible, Fetcher};
 
 use proxy_wasm::traits::RootContext;
-use straitjacket::api::v0::service::proxy;
+pub use straitjacket::api::v0::service::proxy;
 use straitjacket::resources::http::endpoint::Endpoint;
 
 #[derive(Debug, thiserror::Error)]
@@ -43,14 +43,13 @@ impl FetcherState {
 
 #[derive(Debug)]
 pub struct ConfigFetcher {
-    service_id: String,
-    environment: Environment,
+    service: Service, // hold service from static config
     state: FetcherState,
 }
 
 impl PartialEq for ConfigFetcher {
     fn eq(&self, other: &Self) -> bool {
-        self.service_id == other.service_id
+        self.service.id == other.service.id
     }
 }
 
@@ -74,10 +73,9 @@ impl ConfigFetcher {
     const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
         proxy::mapping_rules::LIST;
 
-    pub fn new(service_id: String, environment: Environment) -> Self {
+    pub fn new(service: Service) -> Self {
         Self {
-            service_id,
-            environment,
+            service,
             state: FetcherState::Inactive,
         }
     }
@@ -87,7 +85,23 @@ impl ConfigFetcher {
     }
 
     pub fn service_id(&self) -> &str {
-        self.service_id.as_str()
+        self.service.id.as_str()
+    }
+
+    pub fn service(&self) -> &Service {
+        &self.service
+    }
+
+    pub fn environment(&self) -> &Environment {
+        &self.service.environment
+    }
+
+    pub fn state(&self) -> &FetcherState {
+        &self.state
+    }
+
+    pub fn set_state(&mut self, new_state: FetcherState) {
+        self.state = new_state;
     }
 
     pub(super) fn fetch_endpoint<E>(
@@ -116,7 +130,7 @@ impl ConfigFetcher {
                     error!(
                         ctx,
                         "failed to initiate fetch of configuration data for {}: {}",
-                        self.service_id.as_str(),
+                        self.service_id(),
                         e
                     );
                     Err(Error::Failed)
@@ -145,10 +159,10 @@ impl ConfigFetcher {
                     upstream,
                     qs_params,
                     Self::CONFIG_EP,
-                    &[self.service_id.as_str(), self.environment.as_str()],
+                    &[self.service_id(), self.environment().as_str()],
                 ) {
                     Ok(call_id) => FetcherState::FetchingConfig(call_id),
-                    Err(e) => FetcherState::Error(e.into()),
+                    Err(e) => FetcherState::Error(e),
                 };
                 state.into()
             }
@@ -157,7 +171,7 @@ impl ConfigFetcher {
                     ctx,
                     "still fetching config!? - token_id: {}, svc_id: {}",
                     token_id,
-                    self.service_id.as_str()
+                    self.service_id()
                 );
                 FetcherState::FetchingConfig(*token_id).into()
             }
@@ -166,7 +180,7 @@ impl ConfigFetcher {
                     ctx,
                     "still fetching rules!? - token_id: {}, svc_id: {}",
                     token_id,
-                    self.service_id.as_str()
+                    self.service_id()
                 );
                 FetcherState::FetchingRules(*token_id).into()
             }
@@ -177,14 +191,14 @@ impl ConfigFetcher {
         };
 
         if let Some(new_state) = new_state {
-            self.state = new_state;
+            self.set_state(new_state);
         }
         42
     }
 
     fn parsing_error(ctx: &RootAuthThreescale, body: &str, e: Box<dyn std::error::Error>) {
         error!(ctx, "failed to parse config: {}", e);
-        match serde_json::from_str::<serde_json::Value>(body.as_ref()).and_then(|json_val| {
+        match serde_json::from_str::<serde_json::Value>(body).and_then(|json_val| {
             serde_json::to_string_pretty(&json_val).or_else(|_| serde_json::to_string(&json_val))
         }) {
             Ok(json) => error!(ctx, "JSON error response:\n{}", json),
@@ -250,10 +264,10 @@ impl ConfigFetcher {
                             upstream,
                             qs_params,
                             Self::RULES_EP,
-                            &[self.service_id.as_str()],
+                            &[self.service_id()],
                         ) {
                             Ok(call_id) => FetcherState::FetchingRules(call_id),
-                            Err(e) => FetcherState::Error(e.into()),
+                            Err(e) => FetcherState::Error(e),
                         }
                     }
                 };
