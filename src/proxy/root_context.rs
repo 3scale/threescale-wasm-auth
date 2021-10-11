@@ -23,8 +23,6 @@ pub(super) struct RootAuthThreescale {
     id: u32,
     log_id: String,
     config_deadline: SystemTime,
-    // XXX TODO FIXME this is currently not necessary
-    fetcher: Fetcher,
 }
 
 impl RootAuthThreescale {
@@ -36,7 +34,6 @@ impl RootAuthThreescale {
             context_id: 0,
             id: 0,
             log_id: String::new(),
-            fetcher: Fetcher,
             config_deadline: std::time::UNIX_EPOCH,
         }
     }
@@ -73,7 +70,7 @@ impl Context for RootAuthThreescale {
         };
 
         // Initialize the config fetcher
-        self.fetcher = config_fetcher::fetcher_init();
+        let _ = config_fetcher::fetcher_init();
 
         self.id = self.rng.next_u32();
         write!(
