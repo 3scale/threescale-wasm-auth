@@ -248,6 +248,7 @@ impl RootContext for RootAuthThreescale {
                         self,
                         "on_tick running while the configuration is still valid"
                     );
+                    return;
                 }
 
                 if let Some(services) = config.services() {
