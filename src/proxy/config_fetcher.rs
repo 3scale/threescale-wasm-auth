@@ -20,6 +20,26 @@ pub struct ConfigFetcher {
     state: FetcherState,
 }
 
+impl PartialEq for ConfigFetcher {
+    fn eq(&self, other: &Self) -> bool {
+        self.service_id == other.service_id
+    }
+}
+
+impl Eq for ConfigFetcher {}
+
+impl PartialOrd for ConfigFetcher {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.service_id().partial_cmp(other.service_id())
+    }
+}
+
+impl Ord for ConfigFetcher {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.service_id().cmp(other.service_id())
+    }
+}
+
 impl ConfigFetcher {
     const CONFIG_EP: Endpoint<'static, 'static, proxy::configs::Config> = proxy::configs::LATEST;
     const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
