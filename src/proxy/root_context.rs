@@ -1,12 +1,21 @@
 use proxy_wasm::traits::{Context, RootContext};
 use proxy_wasm::types::{BufferType, ChildContext};
 
+use core::time::Duration;
+use std::time::SystemTime;
+
 use crate::configuration::Configuration;
 use crate::log::IdentLogger;
+use crate::proxy::config_fetcher::{self, ConfigFetcher, Fetcher, FetcherState};
+use crate::threescale::{MappingRule, Usage};
 use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
 
+use threescalers::http::mapping_rule::{Method, RestRule};
+
 use super::http_context::HttpAuthThreescale;
+
+const MIN_SYNC: u64 = 20;
 
 pub(super) struct RootAuthThreescale {
     vm_configuration: Option<Vec<u8>>,
@@ -15,6 +24,7 @@ pub(super) struct RootAuthThreescale {
     context_id: u32,
     id: u32,
     log_id: String,
+    config_deadline: SystemTime,
 }
 
 impl RootAuthThreescale {
@@ -26,6 +36,7 @@ impl RootAuthThreescale {
             context_id: 0,
             id: 0,
             log_id: String::new(),
+            config_deadline: std::time::UNIX_EPOCH,
         }
     }
 }
@@ -60,6 +71,9 @@ impl Context for RootAuthThreescale {
             }
         };
 
+        // Initialize the config fetcher
+        let _ = config_fetcher::fetcher_init();
+
         self.id = self.rng.next_u32();
         write!(
             &mut self.log_id,
@@ -83,10 +97,116 @@ impl Context for RootAuthThreescale {
 
         info!(self, "registered");
     }
+
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        _num_headers: usize,
+        _body_size: usize,
+        _num_trailers: usize,
+    ) {
+        if let Some(sys) = self.get_system_config() {
+            let upstream = sys.upstream();
+            let qs_params = format!("access_token={}", sys.token());
+
+            let idx = Fetcher::with(|vcf| {
+                vcf.iter_mut()
+                    .position(|cf| cf.token_id().map(|t| t == token_id).unwrap_or(false))
+            });
+
+            if idx.is_none() {
+                error!(self, "config fetcher for token id {} not found!", token_id);
+                return;
+            }
+
+            let idx = idx.unwrap();
+            Fetcher::with(|vcf| {
+                let cf = vcf.get_mut(idx).unwrap();
+                let _a = cf.response(self, token_id, upstream, qs_params.as_str());
+            });
+
+            // update mapping rules
+            info!(self, "updating mapping rules using fetched config");
+            Fetcher::with(|vcf| {
+                let cf = vcf.get_mut(idx).unwrap();
+                let mut rules_updated: bool = false;
+
+                let config = self.configuration.as_mut().map(|config| config.get_mut());
+                let services_op = config.map(|config| config.services.as_mut()).flatten();
+                let services = services_op.unwrap(); // cannot make a callout without services
+
+                if let Some(service) = services.iter_mut().find(|sv| sv.id() == cf.service_id()) {
+                    let mut latest_service = cf.service().clone();
+                    match cf.state() {
+                        FetcherState::ConfigFetched(proxy_config) => {
+                            let proxy_config = proxy_config.get_inner().item();
+                            let proxy_rules = proxy_config.content().proxy().mapping_rules();
+
+                            for proxy_rule in proxy_rules {
+                                let metric_name = proxy_rule.metric_system_name.clone();
+
+                                latest_service.mapping_rules.push(MappingRule {
+                                    rule: RestRule::new(
+                                        Method::from(proxy_rule.http_method.as_ref()),
+                                        proxy_rule.pattern.clone(),
+                                    )
+                                    .unwrap(),
+                                    usages: vec![Usage {
+                                        name: metric_name.unwrap_or_else(|| "Hits".into()),
+                                        delta: proxy_rule.delta as i64,
+                                    }],
+                                    last: proxy_rule.last,
+                                })
+                            }
+                            rules_updated = true;
+                        }
+                        FetcherState::RulesFetched(ref rules) => {
+                            let mapping_rules = rules.get_inner();
+
+                            for mapping_rule_tag in mapping_rules {
+                                let mapping_rule_inner = mapping_rule_tag.get_inner();
+                                let mapping_rule = mapping_rule_inner.item();
+                                let metric_name = mapping_rule.metric_system_name.clone();
+
+                                latest_service.mapping_rules.push(MappingRule {
+                                    rule: RestRule::new(
+                                        Method::from(mapping_rule.http_method.as_ref()),
+                                        mapping_rule.pattern.clone(),
+                                    )
+                                    .unwrap(),
+                                    usages: vec![Usage {
+                                        name: metric_name.unwrap_or_else(|| "Hits".into()),
+                                        delta: mapping_rule.delta as i64,
+                                    }],
+                                    last: mapping_rule.last,
+                                })
+                            }
+                            rules_updated = true;
+                        }
+                        _ => (),
+                    }
+                    if rules_updated {
+                        *service = latest_service;
+                        cf.set_state(FetcherState::Inactive);
+                    }
+                }
+            });
+        }
+    }
 }
 
 impl RootContext for RootAuthThreescale {
     fn on_vm_start(&mut self, vm_configuration_size: usize) -> bool {
+        info!(
+            self,
+            "{}",
+            concat!(
+                env!("CARGO_PKG_NAME"),
+                " version ",
+                env!("CARGO_PKG_VERSION"),
+                " booting up."
+            )
+        );
         info!(
             self,
             "on_vm_start: vm_configuration_size is {}", vm_configuration_size
@@ -170,6 +290,11 @@ impl RootContext for RootAuthThreescale {
             "on_configure: plugin configuration {:#?}", self.configuration
         );
 
+        // cancel any previous work updating configurations
+        Fetcher::clear();
+
+        let _ = self.set_next_tick();
+
         true
     }
 
@@ -183,5 +308,87 @@ impl RootContext for RootAuthThreescale {
         };
 
         Some(ChildContext::HttpContext(Box::new(ctx)))
+    }
+
+    fn on_tick(&mut self) {
+        debug!(self, "executing on_tick");
+        if let Some(config) = self.get_configuration() {
+            if let Some(sys) = self.get_system_config() {
+                let current_time = self.get_current_time();
+                if current_time < self.config_deadline {
+                    warn!(
+                        self,
+                        "on_tick running while the configuration is still valid"
+                    );
+                    return;
+                }
+
+                if let Some(services) = config.services() {
+                    let upstream = sys.upstream();
+                    let qs = format!("access_token={}", sys.token());
+
+                    Fetcher::with(|vcf| {
+                        vcf.sort_unstable();
+                        for service in services {
+                            let idx = match vcf
+                                .binary_search_by_key(&service.id(), |cf| cf.service_id())
+                            {
+                                Ok(idx) => idx,
+                                Err(idx) => {
+                                    let cf = ConfigFetcher::new(service.clone());
+                                    vcf.insert(idx, cf);
+                                    idx
+                                }
+                            };
+                            let cf = vcf.get_mut(idx).unwrap();
+                            cf.call(self, upstream, qs.as_str());
+                        }
+                    });
+                }
+
+                self.set_next_tick();
+            }
+        }
+    }
+}
+
+impl RootAuthThreescale {
+    pub fn get_configuration(&self) -> Option<&crate::configuration::api::v1::Configuration> {
+        self.configuration.as_ref().map(|conf| conf.get())
+    }
+
+    pub fn get_system_config(&self) -> Option<&crate::threescale::System> {
+        self.get_configuration().map(|conf| conf.system()).flatten()
+    }
+
+    fn get_next_tick(&self) -> Option<(Duration, Duration)> {
+        self.get_system_config().map(|sys| {
+            let jitter = self.rng.next_u32() as u64 & 0x0F; // add 0-15 seconds on top
+
+            // ensure we only do this at most once per minute, and at least not within the timeout
+            let original_ttl = core::cmp::min(
+                sys.ttl(),
+                core::cmp::max(Duration::from_secs(MIN_SYNC), sys.upstream().timeout),
+            );
+            let ttl = original_ttl.saturating_add(Duration::from_secs(jitter));
+            info!(
+                self,
+                "system configuration TTL set to {} seconds",
+                ttl.as_secs()
+            );
+
+            (ttl, original_ttl)
+        })
+    }
+
+    pub fn set_next_tick(&mut self) -> Option<Duration> {
+        self.get_next_tick().map(|(tick, original_ttl)| {
+            self.config_deadline = self
+                .get_current_time()
+                .checked_add(original_ttl)
+                .unwrap_or(std::time::UNIX_EPOCH);
+            self.set_tick_period(tick);
+            tick
+        })
     }
 }

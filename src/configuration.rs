@@ -41,6 +41,12 @@ impl Configuration {
             Self::V1(c) => c,
         }
     }
+
+    pub fn get_mut(&mut self) -> &mut api::v1::Configuration {
+        match self {
+            Self::V1(c) => c,
+        }
+    }
 }
 
 // Default to JSON configuration deserialization
