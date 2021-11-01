@@ -122,7 +122,7 @@ impl Context for RootAuthThreescale {
             let idx = idx.unwrap();
             Fetcher::with(|vcf| {
                 let cf = vcf.get_mut(idx).unwrap();
-                let _a = cf.response(self, token_id, upstream, qs_params.as_str());
+                cf.response(self, token_id, upstream, qs_params.as_str());
             });
 
             // update mapping rules
