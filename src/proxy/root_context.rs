@@ -137,6 +137,7 @@ impl Context for RootAuthThreescale {
 
                 if let Some(service) = services.iter_mut().find(|sv| sv.id() == cf.service_id()) {
                     let mut latest_service = cf.service().clone();
+                    // Note: Possibility of unintentional metric hits. Check Issue(#73).
                     match cf.state() {
                         FetcherState::ConfigFetched(proxy_config) => {
                             let proxy_config = proxy_config.get_inner().item();
