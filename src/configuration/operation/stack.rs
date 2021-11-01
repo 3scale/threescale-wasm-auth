@@ -153,10 +153,8 @@ impl Stack {
 
                 if let Some(tail) = tail {
                     let _ = tail_vec.split_off(tail_vec.len().saturating_sub(*tail));
-                    tail_vec
-                } else {
-                    tail_vec
                 }
+                tail_vec
             }
             Self::Swap { from, to } => {
                 use self::indexing::{CollectionLength, Index};
