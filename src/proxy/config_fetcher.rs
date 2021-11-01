@@ -316,7 +316,7 @@ impl ConfigFetcher {
                         }
                     }
                     None => {
-                        info!(ctx, "FAILED TO GET list of mapping rules!");
+                        info!(ctx, "FAILED TO GET list of mapping rules as body is empty!");
                     }
                 }
             }
