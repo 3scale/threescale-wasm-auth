@@ -214,7 +214,7 @@ impl ConfigFetcher {
         token_id: u32,
         upstream: &Upstream,
         qs_params: &str,
-    ) -> u32 {
+    ) {
         match self.state {
             FetcherState::Inactive => {
                 // This could be due to receiving a new configuration mid-flight of a system request
@@ -320,8 +320,12 @@ impl ConfigFetcher {
                     }
                 }
             }
-            FetcherState::Error(_) => todo!(),
+            FetcherState::Error(ref e) => {
+                warn!(
+                    ctx,
+                    "recieved response while Fetcher's in Error state: {}", e
+                );
+            }
         }
-        0
     }
 }
