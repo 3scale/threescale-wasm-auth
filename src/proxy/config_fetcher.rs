@@ -146,12 +146,7 @@ impl ConfigFetcher {
         }
     }
 
-    pub(super) fn call(
-        &mut self,
-        ctx: &RootAuthThreescale,
-        upstream: &Upstream,
-        qs_params: &str,
-    ) -> u32 {
+    pub(super) fn call(&mut self, ctx: &RootAuthThreescale, upstream: &Upstream, qs_params: &str) {
         let new_state = match &self.state {
             FetcherState::Inactive | FetcherState::Error(_) => {
                 let state = match self.fetch_endpoint(
@@ -193,7 +188,6 @@ impl ConfigFetcher {
         if let Some(new_state) = new_state {
             self.set_state(new_state);
         }
-        42
     }
 
     fn parsing_error(ctx: &RootAuthThreescale, body: &str, e: Box<dyn std::error::Error>) {
