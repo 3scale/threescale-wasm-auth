@@ -146,12 +146,7 @@ impl ConfigFetcher {
         }
     }
 
-    pub(super) fn call(
-        &mut self,
-        ctx: &RootAuthThreescale,
-        upstream: &Upstream,
-        qs_params: &str,
-    ) -> u32 {
+    pub(super) fn call(&mut self, ctx: &RootAuthThreescale, upstream: &Upstream, qs_params: &str) {
         let new_state = match &self.state {
             FetcherState::Inactive | FetcherState::Error(_) => {
                 let state = match self.fetch_endpoint(
@@ -193,7 +188,6 @@ impl ConfigFetcher {
         if let Some(new_state) = new_state {
             self.set_state(new_state);
         }
-        42
     }
 
     fn parsing_error(ctx: &RootAuthThreescale, body: &str, e: Box<dyn std::error::Error>) {
@@ -214,7 +208,7 @@ impl ConfigFetcher {
         token_id: u32,
         upstream: &Upstream,
         qs_params: &str,
-    ) -> u32 {
+    ) {
         match self.state {
             FetcherState::Inactive => {
                 // This could be due to receiving a new configuration mid-flight of a system request
@@ -316,12 +310,16 @@ impl ConfigFetcher {
                         }
                     }
                     None => {
-                        info!(ctx, "FAILED TO GET list of mapping rules!");
+                        info!(ctx, "FAILED TO GET list of mapping rules as body is empty!");
                     }
                 }
             }
-            FetcherState::Error(_) => todo!(),
+            FetcherState::Error(ref e) => {
+                warn!(
+                    ctx,
+                    "recieved response while Fetcher's in Error state: {}", e
+                );
+            }
         }
-        0
     }
 }
