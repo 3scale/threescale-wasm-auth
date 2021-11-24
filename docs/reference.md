@@ -105,7 +105,7 @@ spec:
     labels:
       app: productpage
   config: <yaml configuration>
-  image: quay.io/3scale/threescale-wasm-auth:1.0
+  image: registry.redhat.io/openshift-service-mesh/3scale-auth-wasm-rhel8:0.0.1
   phase: PostAuthZ
   priority: 100
 ```
