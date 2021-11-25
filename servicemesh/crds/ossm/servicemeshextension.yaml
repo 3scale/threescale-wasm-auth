@@ -59,14 +59,14 @@ spec:
       - method: GET
         pattern: "/"
         usages:
-        - name: Hits
+        - name: hits
           delta: 1
       - method: GET
         pattern: "/o{*}c"
         usages:
         - name: oidc
           delta: 1
-        - name: Hits
+        - name: hits
           delta: 1
       - method: any
         pattern: "/{anything}?bigsale={*}"

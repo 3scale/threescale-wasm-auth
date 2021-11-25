@@ -183,7 +183,7 @@ spec:
                             "pattern": "/",
                             "usages": [
                               {
-                                "name": "Hits",
+                                "name": "hits",
                                 "delta": 1
                               }
                             ]
@@ -197,7 +197,7 @@ spec:
                                 "delta": 1
                               },
                               {
-                                "name": "Hits",
+                                "name": "hits",
                                 "delta": 1
                               }
                             ]
