@@ -327,7 +327,7 @@ resources:
                                     "pattern": "/",
                                     "usages": [
                                       {
-                                        "name": "Hits",
+                                        "name": "hits",
                                         "delta": 1
                                       }
                                     ]
@@ -341,7 +341,7 @@ resources:
                                         "delta": 1
                                       },
                                       {
-                                        "name": "Hits",
+                                        "name": "hits",
                                         "delta": 1
                                       }
                                     ]
