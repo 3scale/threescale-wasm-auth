@@ -35,7 +35,7 @@ pub struct Service {
     pub id: String,
     #[serde(default)]
     pub environment: Environment,
-    pub token: String,
+    pub token: Option<String>,
     #[serde(default)]
     pub authorities: GlobPatternSet,
     pub credentials: Credentials,
@@ -54,8 +54,8 @@ impl Service {
         self.environment
     }
 
-    pub fn token(&self) -> &str {
-        self.token.as_str()
+    pub fn token(&self) -> Option<&str> {
+        self.token.as_deref()
     }
 
     pub fn credentials(&self) -> &Credentials {
