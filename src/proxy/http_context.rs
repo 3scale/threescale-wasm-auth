@@ -191,7 +191,13 @@ impl HttpAuthThreescale {
         self.add_http_request_header("x-3scale-upstream-url", upstream.url.as_str());
         self.add_http_request_header("x-3scale-timeout", &upstream.default_timeout().to_string());
         self.add_http_request_header("x-3scale-service-id", service.id());
-        self.add_http_request_header("x-3scale-service-token", service.token());
+        let service_token = if let Some(token) = service.token() {
+            token
+        } else {
+            // without service token, other info is useless.
+            anyhow::bail!("service token unavailable");
+        };
+        self.add_http_request_header("x-3scale-service-token", service_token);
         self.add_http_request_header("x-3scale-usages", &serde_json::to_string(&usages)?);
         Ok(())
     }
