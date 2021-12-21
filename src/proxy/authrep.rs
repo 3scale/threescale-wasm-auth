@@ -146,9 +146,14 @@ pub fn build_call(ar: &AuthRep) -> Result<Request, anyhow::Error> {
 
     let service = ar.service();
 
+    let service_token = if let Some(token) = service.token() {
+        token
+    } else {
+        anyhow::bail!("service token unavailable");
+    };
     let service = Service::new(
         service.id(),
-        threescalers::credentials::Credentials::ServiceToken(service.token().into()),
+        threescalers::credentials::Credentials::ServiceToken(service_token.into()),
     );
     let mut apicall = ApiCall::builder(&service);
     // the builder here can only fail if we fail to set a kind
