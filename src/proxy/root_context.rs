@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use crate::configuration::Configuration;
 use crate::log::IdentLogger;
-use crate::proxy::config_fetcher::{self, ConfigFetcher, Fetcher, FetcherState};
+use crate::proxy::config_fetcher::{self, proxy, ConfigFetcher, Fetcher, FetcherState};
 use crate::threescale::{MappingRule, Usage};
 use crate::util::rand::thread_rng::{thread_rng_init_fallible, ThreadRng};
 use crate::util::serde::ErrorLocation;
@@ -125,7 +125,6 @@ impl Context for RootAuthThreescale {
                 cf.response(self, token_id, upstream, qs_params.as_str());
             });
 
-            // update mapping rules
             info!(self, "updating mapping rules using fetched config");
             Fetcher::with(|vcf| {
                 let cf = vcf.get_mut(idx).unwrap();
@@ -142,6 +141,12 @@ impl Context for RootAuthThreescale {
                         FetcherState::ConfigFetched(proxy_config) => {
                             let proxy_config = proxy_config.get_inner().item();
                             let proxy_rules = proxy_config.content().proxy().mapping_rules();
+                            let backend_auth = proxy_config.content().backend_authentication();
+                            if let proxy::configs::BackendAuthentication::ServiceToken(token) =
+                                backend_auth
+                            {
+                                latest_service.token = Some(token.clone());
+                            }
 
                             for proxy_rule in proxy_rules {
                                 let metric_name = proxy_rule.metric_system_name.clone();
