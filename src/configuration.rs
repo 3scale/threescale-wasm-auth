@@ -132,7 +132,7 @@ mod test {
             }),
             services: Some(vec![Service {
                 id: "2555417834780".into(),
-                token: "service_token".into(),
+                token: Some("service_token".into()),
                 environment: Environment::Production,
                 authorities: GlobPatternSet::new(
                     [
