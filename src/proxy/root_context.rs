@@ -131,7 +131,7 @@ impl Context for RootAuthThreescale {
                 let mut rules_updated: bool = false;
 
                 let config = self.configuration.as_mut().map(|config| config.get_mut());
-                let services_op = config.map(|config| config.services.as_mut()).flatten();
+                let services_op = config.and_then(|config| config.services.as_mut());
                 let services = services_op.unwrap(); // cannot make a callout without services
 
                 if let Some(service) = services.iter_mut().find(|sv| sv.id() == cf.service_id()) {
@@ -364,7 +364,7 @@ impl RootAuthThreescale {
     }
 
     pub fn get_system_config(&self) -> Option<&crate::threescale::System> {
-        self.get_configuration().map(|conf| conf.system()).flatten()
+        self.get_configuration().and_then(|conf| conf.system())
     }
 
     fn get_next_tick(&self) -> Option<(Duration, Duration)> {
