@@ -136,9 +136,9 @@ Once you are happy with the module configuration in `spec.config` and the rest o
 In order for the module to authorize requests against `3scale` it must have access to `3scale`
 services. This can be accomplished within `OpenShift Service Mesh` and `Istio` by applying
 an external [`ServiceEntry`](https://istio.io/v1.9/docs/reference/config/networking/service-entry/)
-object.
+object and a corresponding [`DestinationRule`](https://istio.io/v1.9/docs/reference/config/networking/destination-rule/) object for TLS configuration to use HTTPS protocol.
 
-The `custom resources` below just set up the `service entries` for access from within the mesh
+The `custom resources` below just set up the `service entries` and `destination rules` for secure access from within the mesh
 to the well-known [`SaaS`](https://en.wikipedia.org/wiki/Software_as_a_service) services from
 `3scale` for the [`Apisonator`](https://github.com/3scale/apisonator) (aka `backend`) and [`Porta`](https://github.com/3scale/porta)
 (aka `system`) components offering respectively the `Service Management API` and the
@@ -174,6 +174,27 @@ spec:
   location: MESH_EXTERNAL
   resolution: DNS
 ---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: threescale-saas-backend
+spec:
+  host: su1.3scale.net
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: su1.3scale.net
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: threescale-saas-system
+spec:
+  host: multitenant.3scale.net
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: multitenant.3scale.net
 ```
 
 Just like any `YAML` `custom resource` file, these objects can be applied in your cluster via
@@ -182,7 +203,7 @@ the `oc apply` command.
 **Note**: Technically there is nothing preventing you from deploying an in-mesh `3scale` service.
           If so, then you'll want to change the `location` of these services in the resources
           above. Check the `ServiceEntry` [`documentation`](https://istio.io/v1.9/docs/reference/config/networking/service-entry/)
-          for more details.
+          and `DestinationRule` [`documentation`](https://istio.io/v1.9/docs/reference/config/networking/destination-rule/) for more details.
 
 ## Module configuration
 
