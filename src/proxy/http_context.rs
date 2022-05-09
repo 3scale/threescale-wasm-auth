@@ -138,19 +138,25 @@ impl Context for HttpAuthThreescale {
             self,
             "http_ctx: on_http_call_response: token id is {}", token_id
         );
-        let authorized = self
+        let status_code = match self
             .get_http_call_response_headers()
             .into_iter()
-            .find(|(key, _)| key.as_str() == ":status")
-            .map_or(false, |(_, value)| value.as_str() == "200");
+            .find(|(key, _)| key.as_str() == ":status") {
+                None => {
+                    debug!(self, "on_http_call_response: empty status header {}", token_id);
+                    self.send_http_response(502, vec![], Some(b"Bad Gateway\n"));
+                    return;
+                }
+                Some((_, code)) => code.parse::<u32>().unwrap_or(500),
+            };
 
-        if authorized {
+        info!(self, "on_http_call_response: received {} response {}", status_code, token_id);
+        if status_code == 200 {
             info!(self, "on_http_call_response: authorized {}", token_id);
             self.resume_http_request();
         } else {
-            info!(self, "on_http_call_response: forbidden {}", token_id);
-            self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
-            debug!(self, "403 sent");
+            info!(self, "on_http_call_response: not authorized {}", token_id);
+            self.send_http_response(status_code, vec![], Some(b"Not authorized.\n"));
         }
     }
 }
