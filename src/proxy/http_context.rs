@@ -141,16 +141,23 @@ impl Context for HttpAuthThreescale {
         let status_code = match self
             .get_http_call_response_headers()
             .into_iter()
-            .find(|(key, _)| key.as_str() == ":status") {
-                None => {
-                    debug!(self, "on_http_call_response: empty status header {}", token_id);
-                    self.send_http_response(502, vec![], Some(b"Bad Gateway\n"));
-                    return;
-                }
-                Some((_, code)) => code.parse::<u32>().unwrap_or(500),
-            };
+            .find(|(key, _)| key.as_str() == ":status")
+        {
+            None => {
+                debug!(
+                    self,
+                    "on_http_call_response: empty status header {}", token_id
+                );
+                self.send_http_response(502, vec![], Some(b"Bad Gateway\n"));
+                return;
+            }
+            Some((_, code)) => code.parse::<u32>().unwrap_or(500),
+        };
 
-        info!(self, "on_http_call_response: received {} response {}", status_code, token_id);
+        info!(
+            self,
+            "on_http_call_response: received {} response {}", status_code, token_id
+        );
         if status_code == 200 {
             info!(self, "on_http_call_response: authorized {}", token_id);
             self.resume_http_request();
