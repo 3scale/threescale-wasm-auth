@@ -28,22 +28,30 @@ svcentry-apply:
 svcentry-clean:
 	$(KUBECTL) -n $(BOOKINFO_NS) delete -f $(PROJECT_PATH)/crds/threescale-saas-svcentry.yaml
 
+.PHONY: dstrule-apply
+dstrule-apply:
+	$(KUBECTL) -n $(BOOKINFO_NS) apply -f $(PROJECT_PATH)/crds/threescale-saas-dstrule.yaml
+
+.PHONY: dstrule-clean
+svcentry-clean:
+	$(KUBECTL) -n $(BOOKINFO_NS) delete -f $(PROJECT_PATH)/crds/threescale-saas-dstrule.yaml
+
 .PHONY: istio-apply
-istio-apply: svcentry-apply
+istio-apply: svcentry-apply dstrule-apply
 	$(KUBECTL) -n $(BOOKINFO_NS) apply -f $(PROJECT_PATH)/crds/istio/
 
 .PHONY: istio-clean
-istio-clean: svcentry-clean
+istio-clean: svcentry-clean dstrule-clean
 	$(KUBECTL) -n $(BOOKINFO_NS) delete -f $(PROJECT_PATH)/crds/istio/
 
 .PHONY: ossm-apply
 ossm-clean: export KUBECTL?=oc
-ossm-apply: svcentry-apply
+ossm-apply: svcentry-apply dstrule-apply
 	$(KUBECTL) -n $(BOOKINFO_NS) apply -f $(PROJECT_PATH)/crds/ossm/
 
 .PHONY: ossm-clean
 ossm-clean: export KUBECTL?=oc
-ossm-clean: svcentry-clean
+ossm-clean: svcentry-clean dstrule-apply
 	$(KUBECTL) -n $(BOOKINFO_NS) delete -f $(PROJECT_PATH)/crds/ossm/
 
 .PHONY: istio-loglevel

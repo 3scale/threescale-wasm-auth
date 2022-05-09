@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: threescale-saas-backend
+spec:
+  host: su1.3scale.net
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: su1.3scale.net
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: threescale-saas-system
+spec:
+  host: multitenant.3scale.net
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: multitenant.3scale.net
+---
