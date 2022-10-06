@@ -75,12 +75,12 @@ build: ## Build WASM filter
 	fi
 	mkdir -p $(PROJECT_PATH)/compose/wasm
 	cp $(PROJECT_PATH)/target/$(TARGET)/$(BUILD)/threescale_wasm_auth.wasm $(PROJECT_PATH)/compose/wasm/
-	ln -f $(PROJECT_PATH)/target/$(TARGET)/$(BUILD)/threescale_wasm_auth.wasm $(PROJECT_PATH)/servicemesh/
+	ln -f $(PROJECT_PATH)/target/$(TARGET)/$(BUILD)/threescale_wasm_auth.wasm $(PROJECT_PATH)/container/plugin.wasm
 
 clean: ## Clean WASM filter
 	cargo clean
 	rm -f $(PROJECT_PATH)/compose/wasm/threescale_wasm_auth.wasm
-	rm -f $(PROJECT_PATH)/servicemesh/threescale_wasm_auth.wasm
+	rm -f $(PROJECT_PATH)/container/plugin.wasm
 
 .PHONY: clean-with-container
 clean-with-container: export BUILDER_CMD=make clean
