@@ -70,8 +70,6 @@ impl Ord for ConfigFetcher {
 impl ConfigFetcher {
     const CONFIG_EP: Endpoint<'static, 'static, proxy::configs::ProxyConfig> =
         proxy::configs::LATEST;
-    const RULES_EP: Endpoint<'static, 'static, proxy::mapping_rules::MappingRules> =
-        proxy::mapping_rules::LIST;
 
     pub fn new(service: Service) -> Self {
         Self {
@@ -252,17 +250,13 @@ impl ConfigFetcher {
                 let state = match config {
                     Ok(config) => FetcherState::ConfigFetched(Box::new(config)),
                     Err(_e) => {
-                        // Try to fetch rules
-                        match self.fetch_endpoint(
+                        warn!(
                             ctx,
-                            upstream,
-                            qs_params,
-                            Self::RULES_EP,
-                            &[self.service_id()],
-                        ) {
-                            Ok(call_id) => FetcherState::FetchingRules(call_id),
-                            Err(e) => FetcherState::Error(e),
-                        }
+                            "Fetching config failed for service {service}, error {error}",
+                            service = self.service_id(),
+                            error = _e
+                        );
+                        FetcherState::Error(_e)
                     }
                 };
                 self.state = state;
