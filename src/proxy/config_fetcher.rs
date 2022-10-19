@@ -27,15 +27,13 @@ pub enum FetcherState {
     Inactive,
     FetchingConfig(u32),
     ConfigFetched(Box<proxy::configs::ProxyConfig>),
-    FetchingRules(u32),
-    RulesFetched(proxy::mapping_rules::MappingRules),
     Error(Error),
 }
 
 impl FetcherState {
     pub fn token_id(&self) -> Option<u32> {
         match self {
-            Self::FetchingConfig(st) | Self::FetchingRules(st) => Some(*st),
+            Self::FetchingConfig(st) => Some(*st),
             _ => None,
         }
     }
@@ -168,15 +166,6 @@ impl ConfigFetcher {
                 );
                 FetcherState::FetchingConfig(*token_id).into()
             }
-            FetcherState::FetchingRules(token_id) => {
-                info!(
-                    ctx,
-                    "still fetching rules!? - token_id: {}, svc_id: {}",
-                    token_id,
-                    self.service_id()
-                );
-                FetcherState::FetchingRules(*token_id).into()
-            }
             _ => {
                 info!(ctx, "data has been retrieved");
                 None
@@ -200,13 +189,7 @@ impl ConfigFetcher {
         }
     }
 
-    pub(super) fn response(
-        &mut self,
-        ctx: &RootAuthThreescale,
-        token_id: u32,
-        upstream: &Upstream,
-        qs_params: &str,
-    ) {
+    pub(super) fn response(&mut self, ctx: &RootAuthThreescale, token_id: u32) {
         match self.state {
             FetcherState::Inactive => {
                 // This could be due to receiving a new configuration mid-flight of a system request
@@ -263,50 +246,6 @@ impl ConfigFetcher {
             }
             FetcherState::ConfigFetched(ref _cfg) => {
                 warn!(ctx, "config already fetched but got a response !?");
-            }
-            FetcherState::RulesFetched(ref _rules) => {
-                warn!(ctx, "rules already fetched but got a response !?");
-            }
-            FetcherState::FetchingRules(call_id) => {
-                if call_id != token_id {
-                    warn!(ctx, "seen a call response without the right token id");
-                }
-                debug!(
-                    ctx,
-                    "received response for config for service {}",
-                    self.service_id()
-                );
-                match (ctx as &dyn RootContext).get_http_call_response_body(0, usize::MAX) {
-                    Some(body) => {
-                        info!(ctx, "got config!");
-                        let rulesep = straitjacket::api::v0::service::proxy::mapping_rules::LIST;
-                        let body_s = String::from_utf8_lossy(body.as_slice());
-                        let res = rulesep.parse_str(body_s.as_ref());
-                        match res {
-                            Ok(rules) => {
-                                info!(ctx, "rules: {:#?}", rules);
-                                self.state = FetcherState::RulesFetched(rules);
-                            }
-                            Err(e) => {
-                                error!(ctx, "failed to parse rules: {}", e);
-                                match serde_json::from_str::<serde_json::Value>(body_s.as_ref())
-                                    .and_then(|json_val| {
-                                        serde_json::to_string_pretty(&json_val)
-                                            .or_else(|_| serde_json::to_string(&json_val))
-                                    }) {
-                                    Ok(json) => error!(ctx, "JSON error response:\n{}", json),
-                                    Err(_) => {
-                                        error!(ctx, "RAW error response:\n{}", body_s.as_ref())
-                                    }
-                                }
-                                self.state = FetcherState::Error(Error::Failed);
-                            }
-                        }
-                    }
-                    None => {
-                        info!(ctx, "FAILED TO GET list of mapping rules as body is empty!");
-                    }
-                }
             }
             FetcherState::Error(ref e) => {
                 warn!(
