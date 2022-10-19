@@ -299,7 +299,7 @@ impl RootContext for RootAuthThreescale {
         // cancel any previous work updating configurations
         Fetcher::clear();
 
-        let _ = self.set_next_tick();
+        self.on_tick();
 
         true
     }
