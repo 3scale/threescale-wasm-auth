@@ -369,19 +369,7 @@ mod test {
                         }
                       }
                     ]
-                  },
-                  "mapping_rules": [
-                    {
-                      "method": "ANY",
-                      "pattern": "/",
-                      "usages": [
-                        {
-                          "name": "Hits",
-                          "delta": 1
-                        }
-                      ]
-                    }
-                  ]
+                  }
                 }
               ],
               "passthrough_metadata": true
