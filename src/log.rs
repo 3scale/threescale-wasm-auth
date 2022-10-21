@@ -53,42 +53,42 @@ macro_rules! log {
 #[macro_export(local_inner_macros)]
 macro_rules! trace {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Trace, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Trace, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! debug {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Debug, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Debug, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! info {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Info, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Info, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! warn {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Warn, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Warn, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! error {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Error, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Error, $($arg)+)
     )
 }
 
 #[macro_export(local_inner_macros)]
 macro_rules! critical {
     ($ident:expr, $($arg:tt)+) => (
-        log!($ident, crate::log::LogLevel::Critical, $($arg)+)
+        log!($ident, $crate::log::LogLevel::Critical, $($arg)+)
     )
 }
 

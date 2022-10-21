@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::upstream::Upstream;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Backend {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
