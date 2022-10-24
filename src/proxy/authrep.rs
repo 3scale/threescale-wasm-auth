@@ -142,7 +142,9 @@ pub fn build_call(ar: &AuthRep) -> Result<Request, anyhow::Error> {
     let usage = Usage::new(usage.as_slice());
     let txn = Transaction::new(app, None, Some(&usage), None);
     let txns = vec![txn];
-    let extensions = extensions::List::new().no_body();
+    let extensions = extensions::List::new()
+        .no_body()
+        .push_other("rejection_reason_header".into(), "1".into());
 
     let service = ar.service();
 
