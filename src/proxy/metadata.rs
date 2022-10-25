@@ -180,7 +180,7 @@ impl ValueExt for ProtoValue {
         match self {
             ProtoValue {
                 kind: Some(ProtoKind::StringValue(s)),
-            } => Some(&*s),
+            } => Some(s),
             _ => None,
         }
     }

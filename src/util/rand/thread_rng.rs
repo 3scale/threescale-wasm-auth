@@ -77,11 +77,11 @@ impl ThreadRng {
 
 impl RngCore for ThreadRng {
     fn next_u32(&mut self) -> u32 {
-        (&*self).next_u32()
+        (*self).next_u32()
     }
 
     fn next_u64(&mut self) -> u64 {
-        (&*self).next_u64()
+        (*self).next_u64()
     }
 
     fn fill_bytes(&mut self, dest: &mut [u8]) {
