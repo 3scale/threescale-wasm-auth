@@ -458,7 +458,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "straitjacket"
 version = "0.1.0"
-source = "git+https://github.com/3scale-rs/straitjacket?branch=master#5fdd991fc29d080ad82a26163a6854152abfa58b"
+source = "git+https://github.com/3scale-rs/straitjacket?branch=master#51c60657e6deeeb98b30a61cf5d59f230946357d"
 dependencies = [
  "http",
  "serde",
