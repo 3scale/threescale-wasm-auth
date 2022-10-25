@@ -39,6 +39,7 @@ pub struct Service {
     #[serde(default)]
     pub authorities: GlobPatternSet,
     pub credentials: Credentials,
+    #[serde(default)]
     pub mapping_rules: Vec<MappingRule>,
 }
 
