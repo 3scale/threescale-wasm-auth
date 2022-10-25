@@ -14,7 +14,7 @@ use threescalers::{
 };
 
 #[derive(Debug, thiserror::Error)]
-enum MatchError {
+pub enum MatchError {
     #[error("no known service matched")]
     NoServiceMatched,
     #[error("credentials error")]
@@ -76,7 +76,9 @@ pub fn authrep<'a>(
 
     let credentials = service.credentials();
 
-    let apps = credentials.resolve(ctx, rh, &url)?;
+    let apps = credentials
+        .resolve(ctx, rh, &url)
+        .map_err(MatchError::CredentialsError)?;
 
     debug!(ctx, "found credentials, values {:#?}", apps);
     if apps.len() > 1 {
@@ -122,7 +124,7 @@ pub fn build_call(ar: &AuthRep) -> Result<Request, anyhow::Error> {
     let apps = ar.apps();
 
     if apps.is_empty() {
-        anyhow::bail!("could not extract application credentials");
+        anyhow::bail!(CredentialsError::NotFound);
     }
 
     //if apps.len() > 1 {

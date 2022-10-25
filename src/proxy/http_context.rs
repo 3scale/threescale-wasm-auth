@@ -4,8 +4,10 @@ use threescalers::application::Application;
 
 use crate::configuration::Configuration;
 use crate::log::IdentLogger;
+use crate::threescale::CredentialsError;
 
 use super::authrep;
+use super::authrep::MatchError;
 use super::request_headers::RequestHeaders;
 
 pub struct HttpAuthThreescale {
@@ -50,7 +52,18 @@ impl HttpContext for HttpAuthThreescale {
         let ar = match authrep::authrep(self, &rh) {
             Err(e) => {
                 error!(self, "error computing authrep {:?}", e);
-                self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+                match e.downcast_ref::<MatchError>() {
+                    Some(MatchError::NoServiceMatched) => {
+                        self.send_http_response(403, vec![], Some(b"Unknown service.\n"))
+                    }
+                    Some(MatchError::NoUsageMatch) => {
+                        self.send_http_response(404, vec![], Some(b"no mapping rules matched.\n"))
+                    }
+                    Some(MatchError::CredentialsError(_)) => {
+                        self.send_http_response(403, vec![], Some(b"Missing Credentials.\n"))
+                    }
+                    _ => self.send_http_response(403, vec![], Some(b"Access forbidden.\n")),
+                };
                 debug!(self, "403 sent");
                 return FilterHeadersStatus::StopIteration;
             }
@@ -75,7 +88,11 @@ impl HttpContext for HttpAuthThreescale {
             let request = match authrep::build_call(&ar) {
                 Err(e) => {
                     error!(self, "error computing authrep request {:?}", e);
-                    self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+                    let message = match e.downcast_ref::<CredentialsError>() {
+                        Some(CredentialsError::NotFound) => "Missing Credentials.\n",
+                        _ => "Access forbidden.\n",
+                    };
+                    self.send_http_response(403, vec![], Some(message.as_bytes()));
                     debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
@@ -189,7 +206,7 @@ impl HttpAuthThreescale {
         let usages = ar.usages();
 
         if apps.is_empty() {
-            anyhow::bail!("could not extract application credentials");
+            anyhow::bail!(CredentialsError::NotFound);
         }
 
         let backend = self.configuration().backend();
