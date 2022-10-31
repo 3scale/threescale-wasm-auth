@@ -30,10 +30,6 @@ prng_pcg32 = ["rand_pcg"]
 prng_xoshiro128 = ["rand_xoshiro"]
 prng_xorshift = ["rand_xorshift"]
 
-[patch.crates-io]
-url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
-percent-encoding = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
-
 [dependencies]
 proxy-wasm = { git = "https://github.com/3scale/proxy-wasm-rust-sdk", branch = "3scale" }
 log = "^0.4"
@@ -42,7 +38,7 @@ threescalers = { version = "^0.8", features = ["std", "xml-response", "rest-mapp
 straitjacket = { git = "https://github.com/3scale-rs/straitjacket", branch = "master" }
 anyhow = "^1"
 thiserror = "^1"
-url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale", features = ["serde"] }
+url = { version = "^2.4", features = ["serde"] }
 regex = { version = "^1", default-features = false, features = ["std", "perf"] }
 base64 = "^0.21"
 prost = { version = "^0.11", features = ["prost-derive"] }
