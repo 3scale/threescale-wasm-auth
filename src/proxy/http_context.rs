@@ -162,8 +162,22 @@ impl Context for HttpAuthThreescale {
             info!(self, "on_http_call_response: authorized {}", token_id);
             self.resume_http_request();
         } else {
-            info!(self, "on_http_call_response: not authorized {}", token_id);
-            self.send_http_response(status_code, vec![], Some(b"Not authorized.\n"));
+            let rejection_reason = match self
+                .get_http_call_response_headers()
+                .into_iter()
+                .find(|(key, _)| key.as_str() == "3scale-rejection-reason")
+            {
+                None => "None".to_string(),
+                Some((_, reason)) => reason,
+            };
+
+            if rejection_reason == "limits_exceeded" {
+                info!(self, "on_http_call_response: limits_exceeded {}", token_id);
+                self.send_http_response(429, vec![], Some(b"Limits Exceeded.\n"));
+            } else {
+                info!(self, "on_http_call_response: not authorized {}", token_id);
+                self.send_http_response(403, vec![], Some(b"Not authorized.\n"));
+            }
         }
     }
 }
