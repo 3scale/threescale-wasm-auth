@@ -49,7 +49,7 @@ impl Upstream {
         if let Some(extra) = extra {
             let s = s
                 .map(|qs| {
-                    let mut qs = qs.to_owned();
+                    let mut qs = qs.clone();
                     let s = qs.to_mut();
                     s.push('&');
                     s.push_str(extra);
