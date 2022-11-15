@@ -54,15 +54,17 @@ impl HttpContext for HttpAuthThreescale {
                 error!(self, "error computing authrep {:?}", e);
                 match e.downcast_ref::<MatchError>() {
                     Some(MatchError::NoServiceMatched) => {
-                        self.send_http_response(403, vec![], Some(b"Unknown service.\n"))
+                        self.send_http_response(403, vec![], Some(b"Unknown service\n"))
                     }
                     Some(MatchError::NoUsageMatch) => {
-                        self.send_http_response(404, vec![], Some(b"no mapping rules matched.\n"))
+                        self.send_http_response(404, vec![], Some(b"No Mapping Rule matched\n"))
                     }
-                    Some(MatchError::CredentialsError(_)) => {
-                        self.send_http_response(403, vec![], Some(b"Missing Credentials.\n"))
-                    }
-                    _ => self.send_http_response(403, vec![], Some(b"Access forbidden.\n")),
+                    Some(MatchError::CredentialsError(_)) => self.send_http_response(
+                        403,
+                        vec![],
+                        Some(b"Authentication parameters missing\n"),
+                    ),
+                    _ => self.send_http_response(403, vec![], Some(b"Authentication failed\n")),
                 };
                 debug!(self, "403 sent");
                 return FilterHeadersStatus::StopIteration;
@@ -77,7 +79,7 @@ impl HttpContext for HttpAuthThreescale {
                 Ok(()) => return FilterHeadersStatus::Continue,
                 Err(e) => {
                     error!(self, "failed to pass app info to next filter: {:?}", e);
-                    self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+                    self.send_http_response(403, vec![], Some(b"Authentication failed\n"));
                     debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
@@ -89,8 +91,8 @@ impl HttpContext for HttpAuthThreescale {
                 Err(e) => {
                     error!(self, "error computing authrep request {:?}", e);
                     let message = match e.downcast_ref::<CredentialsError>() {
-                        Some(CredentialsError::NotFound) => "Missing Credentials.\n",
-                        _ => "Access forbidden.\n",
+                        Some(CredentialsError::NotFound) => "Authentication parameters missing\n",
+                        _ => "Authentication failed\n",
                     };
                     self.send_http_response(403, vec![], Some(message.as_bytes()));
                     debug!(self, "403 sent");
@@ -122,7 +124,7 @@ impl HttpContext for HttpAuthThreescale {
                 Ok(call_token) => call_token,
                 Err(e) => {
                     error!(self, "on_http_request_headers: could not dispatch HTTP call to {}: did you create the cluster to do so? - {:#?}", upstream.name(), e);
-                    self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+                    self.send_http_response(403, vec![], Some(b"Authentication failed\n"));
                     debug!(self, "403 sent");
                     return FilterHeadersStatus::StopIteration;
                 }
@@ -137,7 +139,7 @@ impl HttpContext for HttpAuthThreescale {
         } else {
             // no backend configured
             debug!(self, "on_http_request_headers: no backend configured");
-            self.send_http_response(403, vec![], Some(b"Access forbidden.\n"));
+            self.send_http_response(403, vec![], Some(b"Authentication failed\n"));
             debug!(self, "403 sent");
             FilterHeadersStatus::StopIteration
         }
@@ -190,10 +192,10 @@ impl Context for HttpAuthThreescale {
 
             if rejection_reason == "limits_exceeded" {
                 info!(self, "on_http_call_response: limits_exceeded {}", token_id);
-                self.send_http_response(429, vec![], Some(b"Limits Exceeded.\n"));
+                self.send_http_response(429, vec![], Some(b"Usage limit exceeded\n"));
             } else {
                 info!(self, "on_http_call_response: not authorized {}", token_id);
-                self.send_http_response(403, vec![], Some(b"Not authorized.\n"));
+                self.send_http_response(403, vec![], Some(b"Authentication failed\n"));
             }
         }
     }
