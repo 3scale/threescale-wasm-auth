@@ -340,10 +340,10 @@ impl RootAuthThreescale {
             let jitter = self.rng.next_u32() as u64 & 0x0F; // add 0-15 seconds on top
 
             // ensure we only do this at most once per minute, and at least not within the timeout
-            let original_ttl = core::cmp::min(
-                sys.ttl(),
-                core::cmp::max(Duration::from_secs(MIN_SYNC), sys.upstream().timeout),
-            );
+            let original_ttl = sys
+                .upstream()
+                .timeout
+                .clamp(Duration::from_secs(MIN_SYNC), sys.ttl());
             let ttl = original_ttl.saturating_add(Duration::from_secs(jitter));
             info!(
                 self,
