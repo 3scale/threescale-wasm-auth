@@ -391,8 +391,8 @@ Each element in the `services` array represents a `3scale` service. The fields a
                  supporting the `*`, `+` and `?` matchers.
 * `credentials`: Required. An object defining which kind of credentials to look for and where.
                  See definition below.
-* `mapping_rules`: Required. An array of objects representing mapping rules and `3scale` methods to hit.
-                   See definition below.
+* `mapping_rules`: Optional. An array of objects representing mapping rules and `3scale` methods to hit.
+                   If empty, it will use values fetched from the system. See definition below.
 
 ### The `credentials` object
 
