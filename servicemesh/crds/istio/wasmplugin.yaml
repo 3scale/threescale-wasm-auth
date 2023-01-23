@@ -3,7 +3,8 @@ kind: WasmPlugin
 metadata:
   name: threescale-auth
 spec:
-  url: oci://registry.redhat.io/openshift-service-mesh/3scale-auth-wasm-rhel8:0.0.1
+  url: oci://registry.redhat.io/3scale-amp2/3scale-auth-wasm-rhel8:0.0.3
+  imagePullSecret: optional-pull-secret-resource
   phase: AUTHZ
   priority: 100
   selector:
@@ -28,26 +29,9 @@ spec:
       - no_body
     services:
     - id: '2555417834780'
-      token: service_token
       authorities:
       - "*"
       credentials:
-        app_id:
-          - header:
-              keys:
-                - app_id
-          - query_string:
-              keys:
-                - app_id
-                - application_id
-        app_key:
-          - header:
-              keys:
-                - app_key
-          - query_string:
-              keys:
-                - app_key
-                - application_key
         user_key:
           - query_string:
               keys:
@@ -55,21 +39,17 @@ spec:
           - header:
               keys:
                 - user_key
-      mapping_rules:
-      - method: GET
-        pattern: "/"
-        usages:
-        - name: hits
-          delta: 1
-      - method: GET
-        pattern: "/o{*}c"
-        usages:
-        - name: oidc
-          delta: 1
-        - name: hits
-          delta: 1
-      - method: any
-        pattern: "/{anything}?bigsale={*}"
-        usages:
-        - name: sale
-          delta: 5
+        app_id:
+          - header:
+              keys:
+                - app_id
+          - query_string:
+              keys:
+                - app_id
+        app_key:
+          - header:
+              keys:
+                - app_key
+          - query_string:
+              keys:
+                - app_key
