@@ -77,7 +77,7 @@ The module can work with all supported `3scale` releases except when configuring
 
 `OpenShift Service Mesh` provides a [`custom resource definition`](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 to specify and apply `Proxy-WASM` extensions to sidecar proxies. This `custom resource` is referred
-to as [`ServiceMeshExtension](https://docs.openshift.com/container-platform/4.8/service_mesh/v2x/ossm-extensions.html)
+to as [`WasmPlugin`](https://docs.openshift.com/container-platform/4.8/service_mesh/v2x/ossm-extensions.html)
 (**note**: this is a link to the 2.0 docs, you should select a later version when available).
 
 This `custom resource` will be applied to a set of [`workloads`](https://kubernetes.io/docs/concepts/workloads/`)
@@ -95,38 +95,38 @@ Assuming you want to apply the module to the `productpage` microservice in the `
 format expected for this `custom resource` when using `threescale-wasm-auth`:
 
 ```yaml
-apiVersion: maistra.io/v1alpha1
-kind: ServiceMeshExtension
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
 metadata:
   name: threescale-wasm-auth
   namespace: bookinfo
 spec:
-  workloadSelector:
+  selector:
     labels:
       app: productpage
-  config: <yaml configuration>
-  image: registry.redhat.io/openshift-service-mesh/3scale-auth-wasm-rhel8:0.0.1
-  phase: PostAuthZ
+  pluginConfig: <yaml configuration>
+  url: oci://registry.redhat.io/3scale-amp2/3scale-auth-wasm-rhel8:0.0.3
+  phase: AUTHZ
   priority: 100
 ```
 
-Do note that the `spec.config` field depends on the module configuration, so we have chosen not to
+Do note that the `spec.pluginConfig` field depends on the module configuration, so we have chosen not to
 populate it here, but instead fill in a placeholder `<yaml configuration>` value so we can focus
 on the format of this `custom resource`.
 
 As you can see, the [`YAML`](https://yaml.org) document above refers to the [`Maistra`](https://maistra.io)
-(upstream version of `OpenShift Service Mesh`) `ServiceMeshExtension` API. We declare the `namespace`
-where our module will be deployed, alongside a [`WorkloadSelector`](https://istio.io/v1.9/docs/reference/config/type/workload-selector/)
+(upstream version of `OpenShift Service Mesh`) `WasmPlugin` API. We declare the `namespace`
+where our module will be deployed, alongside a [`selector`](https://istio.io/v1.9/docs/reference/config/type/workload-selector/)
 to identify the set of applications the module will apply to.
 
-Besides the `spec.config` field, which will vary depending on the application, the other fields
-will stay the same across multiple instances of this `custom resource`. Namely, the `image` will
+Besides the `spec.pluginConfig` field, which will vary depending on the application, the other fields
+will stay the same across multiple instances of this `custom resource`. Namely, the `url` will
 only change when newer versions of the module are deployed, and the `phase` will remain the same,
 since this module needs to be invoked right after the proxy has done any local authorization,
 such as validating [`OIDC`](https://openid.net/connect/) tokens. Please refer to the product
 documentation for information on any of the other fields present in the above `YAML` object.
 
-Once you are happy with the module configuration in `spec.config` and the rest of the
+Once you are happy with the module configuration in `spec.pluginConfig` and the rest of the
 `custom resource`, you can apply it via the usual `oc apply` command:
 
 > $ oc apply -f threescale-wasm-auth-bookinfo.yaml
@@ -207,12 +207,12 @@ the `oc apply` command.
 
 ## Module configuration
 
-The `spec.config` of the `ServiceMeshExtension` `custom resource` is used to provide the
+The `spec.pluginConfig` of the `WasmPlugin` `custom resource` is used to provide the
 configuration that the `Proxy-WASM` module will read.
 
 This configuration is embedded in the `host` configuration and read by the module. Typically you
 will find these configurations in [`JSON`](https://json.org/) format for the modules to parse,
-but the `ServiceMeshExtension` resource will interpret the `spec.config` field value as `YAML`
+but the `WasmPlugin` resource will interpret the `spec.pluginConfig` field value as `YAML`
 and then convert the value to `JSON` for consumption by the module. `YAML` representations can
 be significantly more compact than their `JSON` counterparts, and given you will be writing the
 configuration within a `YAML` document, accepting `YAML` to be seamlessly integrated with the
@@ -221,7 +221,7 @@ less verbose configurations.
 
 **Note**: when using the module in standalone mode, you'll have to write the configuration using
           `JSON` formatting, escaping and quoting as needed, within the `host` (ie. `Envoy`)
-          configuration files. When used in combination with the `ServiceMeshExtension` resource,
+          configuration files. When used in combination with the `WasmPlugin` resource,
           you should take into account that even though you'll be writing the configuration in
           `YAML` format, an invalid configuration will force the module to emit diagnostics based
           on its `JSON` representation to a sidecar's logging stream.
@@ -230,9 +230,9 @@ less verbose configurations.
           `custom resource` in some `Istio` or `OpenShift Service Mesh` releases, but that resource
           is not a supported API at all. However, if you still wanted to use it, note that you'll
           also have to rely on specifying this configuration in `JSON` format. This is **not
-          recommended** - instead you should use the `ServiceMeshExtension` API.
+          recommended** - instead you should use the `WasmPlugin` API.
 
-**Note**: Red Hat is working with upstream `Istio` to provide the `ServiceMeshExtension` (or an
+**Note**: Red Hat is working with upstream `Istio` to provide the `WasmPlugin` (or an
           equivalent API) to all upstream users so this API becomes the widely adopted method to
           work with `Proxy-WASM` modules.
 
@@ -256,8 +256,8 @@ for dealing with `user key`, `app id`, `app id` with `app key`, and `OIDC` patte
           account. For example, if you add a mapping rule configuration here, it will always
           apply even when the 3scale administation portal has no such mapping rule.
 
-**Note**: imagine the rest of the `ServiceMeshExtension` resource exists around the
-          `spec.config` YAML entry.
+**Note**: imagine the rest of the `WasmPlugin` resource exists around the
+          `spec.pluginConfig` YAML entry.
 
 ### The `api` object
 
@@ -267,7 +267,7 @@ inoperant.
 
 ```yaml
 spec:
-  config:
+  pluginConfig:
     api: v1
 ```
 
