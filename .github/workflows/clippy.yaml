@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         rust:
-          - stable
+          - 1.69
           # Help identify breakages about to land in stable earlier
-          - beta
+          - stable
 
     steps:
       - uses: actions/checkout@v2
