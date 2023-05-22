@@ -109,7 +109,7 @@ impl StringOp {
                 stack.push(input);
             }
             Self::Reverse => {
-                let value = input.chars().into_iter().rev().collect::<Cow<str>>();
+                let value = input.chars().rev().collect::<Cow<str>>();
                 stack.push(value);
             }
             Self::Split { separator, max } => {
