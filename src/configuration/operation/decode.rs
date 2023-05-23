@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use base64::{engine::general_purpose, Engine as _};
 use proxy_wasm::traits::HttpContext;
 use serde::{Deserialize, Serialize};
 
@@ -32,11 +33,9 @@ impl Decode {
         let input = stack.pop().ok_or(DecodeError::NoValuesError)?;
 
         let s = match self {
-            Self::Base64 => {
-                String::from_utf8(base64::decode_config(input.as_ref(), base64::STANDARD)?)?
-            }
+            Self::Base64 => String::from_utf8(general_purpose::STANDARD.decode(input.as_ref())?)?,
             Self::Base64UrlSafe => {
-                String::from_utf8(base64::decode_config(input.as_ref(), base64::URL_SAFE)?)?
+                String::from_utf8(general_purpose::URL_SAFE.decode(input.as_ref())?)?
             }
         };
 
