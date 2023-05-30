@@ -8,6 +8,7 @@ keywords = ["proxy-wasm", "webassembly", "filter", "proxy", "api-management", "3
 categories = ["api"]
 repository = "https://github.com/3scale/threescale-wasm-auth"
 edition = "2018"
+rust = "1.60"
 resolver = "2"
 publish = false
 readme = "README.md"

@@ -96,7 +96,7 @@ version = "1.0.1"
 source = "git+https://github.com/3scale-rs/rust-url?branch=3scale#78803c179d1eeffad5a9a90d2fe20c739f3dec8f"
 dependencies = [
  "matches",
- "percent-encoding 2.1.0",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -229,12 +229,6 @@ checksum = "9670a07f94779e00908f3e686eab508878ebb390ba6e604d3a284c00e8d0487b"
 name = "percent-encoding"
 version = "2.1.0"
 source = "git+https://github.com/3scale-rs/rust-url?branch=3scale#78803c179d1eeffad5a9a90d2fe20c739f3dec8f"
-
-[[package]]
-name = "percent-encoding"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "proc-macro2"
@@ -549,7 +543,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "no-std-compat",
- "percent-encoding 2.2.0",
+ "percent-encoding",
  "regex",
  "serde",
  "serde-xml-rs",
@@ -605,7 +599,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "matches",
- "percent-encoding 2.1.0",
+ "percent-encoding",
  "serde",
 ]
 
