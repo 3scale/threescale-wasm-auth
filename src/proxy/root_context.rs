@@ -210,7 +210,7 @@ impl RootContext for RootAuthThreescale {
         } else {
             // We currently don't need a VM config, so don't
             // fail if there's none.
-            warn!(self, "on_vm_start: empty VM config");
+            debug!(self, "on_vm_start: empty VM config");
         }
 
         true
