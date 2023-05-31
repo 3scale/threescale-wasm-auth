@@ -8,6 +8,7 @@ keywords = ["proxy-wasm", "webassembly", "filter", "proxy", "api-management", "3
 categories = ["api"]
 repository = "https://github.com/3scale/threescale-wasm-auth"
 edition = "2018"
+rust = "1.60"
 resolver = "2"
 publish = false
 readme = "README.md"
@@ -32,23 +33,22 @@ prng_xorshift = ["rand_xorshift"]
 [patch.crates-io]
 url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
 percent-encoding = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale" }
-threescalers = { git = "https://github.com/3scale-rs/threescalers", tag = "v0.8.0" }
 
 [dependencies]
 proxy-wasm = { git = "https://github.com/3scale/proxy-wasm-rust-sdk", branch = "3scale" }
 log = "^0.4"
 serde = { version = "^1", features = ["derive"] }
-threescalers = { git = "https://github.com/3scale-rs/threescalers", tag = "v0.8.0", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"] }
+threescalers = { version = "^0.8", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"]}
 straitjacket = { git = "https://github.com/3scale-rs/straitjacket", branch = "master" }
 anyhow = "^1"
 thiserror = "^1"
 url = { git = "https://github.com/3scale-rs/rust-url", branch = "3scale", features = ["serde"] }
 regex = { version = "^1", default-features = false, features = ["std", "perf"] }
-base64 = "^0.13"
-prost = { version = "^0.8", features = ["prost-derive"] }
-prost-types = { version = "^0.8" }
+base64 = "^0.21"
+prost = { version = "^0.11", features = ["prost-derive"] }
+prost-types = { version = "^0.11" }
 serde_json = { version = "^1" }
-serde_yaml = { version = "^0.8", optional = true }
+serde_yaml = { version = "^0.9", optional = true }
 rand = { version = "^0.8", default-features = false }
 rand_seeder = { version = "^0.2" }
 rand_jitter = { version = "^0.3" }
@@ -58,7 +58,7 @@ rand_xorshift = { version = "^0.3", optional = true }
 rand_pcg = { version = "^0.3", optional = true }
 
 [dev-dependencies]
-serde_yaml = "^0.8"
+serde_yaml = "^0.9"
 
 [lib]
 # rlib included to be able to use #[test] without compiler and linker issues

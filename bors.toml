@@ -1,5 +1,5 @@
-status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.54.0, false, --all-features)", "clippy_check (1.69)", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
-pr_status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.54.0, false, --all-features)", "clippy_check (1.69)", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
+status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.69.0, false, --all-features)", "clippy_check (1.69)", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
+pr_status = ["ci (stable, false, --all-features)", "ci (beta, false, --all-features)", "ci (1.69.0, false, --all-features)", "clippy_check (1.69)", "rustfmt", "audit_check", "licensing (bans licenses sources)"]
 timeout_sec = 1800
 use_squash_merge = false
 block_labels = ["wip"]
