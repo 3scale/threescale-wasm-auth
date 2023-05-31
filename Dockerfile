@@ -25,4 +25,4 @@ RUN cd build/ && \
 FROM scratch
      
 LABEL type=application/vnd.module.wasm.content.layer.v1+wasm 
-COPY --from=builder /build/container/manifest.yaml /build/container/plugin.wasm ./
+COPY --from=builder /build/container/manifest.yaml /build/container/plugin.wasm /
