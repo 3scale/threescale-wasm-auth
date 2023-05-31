@@ -4,11 +4,18 @@ use crate::configuration::MissingError;
 use crate::threescale::{Backend, Service, System};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Cache {
+    pub ttl: Option<u64>,
+    pub jitter: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename = "3scale")]
 pub struct Configuration {
     pub system: Option<System>,
     pub backend: Option<Backend>,
     pub services: Option<Vec<Service>>,
+    pub cache: Option<Cache>,
     // pass request to the next filter in the chain
     pub passthrough_metadata: Option<bool>,
 }
