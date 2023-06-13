@@ -35,7 +35,7 @@ proxy-wasm = { git = "https://github.com/3scale/proxy-wasm-rust-sdk", branch = "
 log = "^0.4"
 serde = { version = "^1", features = ["derive"] }
 threescalers = { version = "^0.8", features = ["std", "xml-response", "rest-mappings", "rest-mappings-serde"]}
-straitjacket = { git = "https://github.com/3scale-rs/straitjacket", branch = "master" }
+straitjacket = { git = "https://github.com/3scale-rs/straitjacket", tag = "v0.2.0" }
 anyhow = "^1"
 thiserror = "^1"
 url = { version = "^2.4", features = ["serde"] }
