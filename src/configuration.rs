@@ -77,6 +77,7 @@ mod test {
     use core::time::Duration;
     use std::convert::TryInto;
 
+    use crate::configuration::api::v1::Cache;
     use threescalers::http::mapping_rule::{Method, RestRule};
 
     use crate::threescale::{
@@ -120,6 +121,10 @@ mod test {
                 },
                 token: "atoken".into(),
                 ttl: Some(300),
+            }),
+            cache: Some(Cache {
+                ttl: Some(10),
+                jitter: Some(15),
             }),
             backend: Some(Backend {
                 name: Some("backend-name".into()),
@@ -282,6 +287,10 @@ mod test {
                   "timeout": 5000
                 },
                 "token": "atoken"
+              },
+              "cache": {
+                "ttl": 10,
+                "jitter": 15
               },
               "backend": {
                 "name": "backend-name",

@@ -336,14 +336,13 @@ impl RootAuthThreescale {
     }
 
     fn get_next_tick(&self) -> Option<(Duration, Duration)> {
-        self.get_system_config().map(|sys| {
-            let jitter = self.rng.next_u32() as u64 & 0x0F; // add 0-15 seconds on top
+        self.get_configuration().map(|config| {
+            let cache = config.cache.as_ref();
+            let max_jitter = cache.and_then(|cache| cache.jitter).unwrap_or(15);
+            let original_ttl =
+                Duration::from_secs(cache.and_then(|cache| cache.ttl).unwrap_or(MIN_SYNC));
 
-            // ensure we only do this at most once per minute, and at least not within the timeout
-            let original_ttl = sys
-                .upstream()
-                .timeout
-                .clamp(Duration::from_secs(MIN_SYNC), sys.ttl());
+            let jitter = self.rng.next_u32() as u64 & max_jitter;
             let ttl = original_ttl.saturating_add(Duration::from_secs(jitter));
             info!(
                 self,
